@@ -3,10 +3,12 @@
 - [Linux](#linux)
   - [Simple install](#simple-install)
     - [Arch](#arch-easy)
+    - [Debian](#debian-easy)
     - [Fedora](#fedora-easy)
     - [Gentoo](#gentoo-easy)
     - [openSUSE](#opensuse-easy)
     - [Slackware](#slackware-easy)
+    - [Ubuntu](#ubuntu-easy)
   - [Install git](#install-git)
     - [Arch](#arch-git)
     - [Debian](#debian-git)
@@ -21,7 +23,10 @@
     - [openSUSE](#opensuse-other-deps)
     - [Slackware](#slackware-other-deps)
     - [Ubuntu](#ubuntu-other-deps)
-  - [Compile toxcore](#compile-toxcore)
+  - [Compile dependencies](#compile-dependencies)
+    - [bootstrap.sh](#bootstrap.sh)
+    - [Compile toxcore](#compile-toxcore)
+    - [Compile extensions](#compile-extensions)
   - [Compile qTox](#compile-qtox)
   - [Security hardening with AppArmor](#security-hardening-with-apparmor)
 - [BSD](#bsd)
@@ -105,9 +110,11 @@ To enable: `-DDESKTOP_NOTIFICATIONS=True`
 Easy qTox install is provided for variety of distributions:
 
 * [Arch](#arch)
+* [Debian](#debian)
 * [Fedora](#fedora)
 * [Gentoo](#gentoo)
 * [Slackware](#slackware)
+* [Ubuntu](#ubuntu)
 
 ---
 
@@ -119,6 +126,16 @@ PKGBUILD is available in the `community` repo, to install:
 
 ```bash
 pacman -S qtox
+```
+
+<a name="debian-easy" />
+
+#### Debian
+
+qTox is available in the [Main](https://tracker.debian.org/pkg/qtox) repo, to install:
+
+```bash
+sudo apt install qtox
 ```
 
 <a name="fedora-easy" />
@@ -182,6 +199,16 @@ may either follow the directions below, or simply run `./simple_make.sh` after
 cloning this repository, which will attempt to automatically download
 dependencies followed by compilation.
 
+<a name="ubuntu-easy" />
+
+#### Ubuntu
+
+qTox is available in the [Universe](https://packages.ubuntu.com/focal/qtox) repo, to install:
+
+```bash
+sudo apt install qtox
+```
+
 ### Install git
 In order to clone the qTox repository you need Git.
 
@@ -233,8 +260,9 @@ Afterwards open a new terminal, change to a directory of your choice and clone
 the repository:
 
 ```bash
-cd /home/$USER/qTox
+cd /home/$USER
 git clone https://github.com/qTox/qTox.git qTox
+cd qTox
 ```
 
 The following steps assumes that you cloned the repository at
@@ -251,7 +279,7 @@ corresponding parts.
 #### Arch Linux
 
 ```bash
-sudo pacman -S --needed base-devel qt5 openal libxss qrencode ffmpeg opus libvpx libsodium sqlcipher
+sudo pacman -S --needed base-devel qt5 openal libxss qrencode ffmpeg opus libvpx libsodium sqlcipher cmake
 ```
 
 
@@ -273,7 +301,6 @@ sudo apt-get install \
     libexif-dev \
     libgdk-pixbuf2.0-dev \
     libgtk2.0-dev \
-    libkdeui5 \
     libopenal-dev \
     libopus-dev \
     libqrencode-dev \
@@ -286,7 +313,7 @@ sudo apt-get install \
     libxss-dev \
     pkg-config \
     qrencode \
-    qt5-default \
+    qtbase5-dev \
     qttools5-dev \
     qttools5-dev-tools \
     yasm
@@ -405,9 +432,25 @@ sudo apt-get install \
     qttools5-dev
 ```
 
-### Compile toxcore
+### Compile dependencies
 
-Normally you don't want to do that, `bootstrap.sh` will do it for you.
+Toxcore and ToxExt extensions can either be built with bootstrap.sh or manually.
+
+<a name="bootstrap.sh" />
+
+#### bootstrap.sh
+
+`bootstrap.sh` will build toxcore and extensions for you, allowing you to skip
+to [compiling qTox](#compile-qtox) after running it. To use it, run
+```bash
+export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/local/lib64/pkgconfig"
+export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig"
+./bootstrap.sh
+```
+
+<a name="compile-toxcore" />
+
+#### Compile toxcore
 
 Provided that you have all required dependencies installed, you can simply run:
 
@@ -426,7 +469,9 @@ echo '/usr/local/lib/' | sudo tee -a /etc/ld.so.conf.d/locallib.conf
 sudo ldconfig
 ```
 
-### Compile extensions
+<a name="compile-extensions" />
+
+#### Compile extensions
 
 qTox uses the toxext library and some of the extensions that go with it.
 
