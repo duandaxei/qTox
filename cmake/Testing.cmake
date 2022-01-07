@@ -34,22 +34,32 @@ function(auto_test subsystem module extra_deps)
     COMMAND ${TEST_CROSSCOMPILING_EMULATOR} test_${module})
 endfunction()
 
+set(MOCK_SOURCES
+  test/mock/mockcoreidhandler.cpp
+  test/mock/mockgroupquery.cpp
+)
+
 auto_test(core core "${${PROJECT_NAME}_RESOURCES}")
 auto_test(core contactid "")
 auto_test(core toxid "")
 auto_test(core toxstring "")
+auto_test(core fileprogress "")
 auto_test(chatlog textformatter "")
 auto_test(net bsu "${${PROJECT_NAME}_RESOURCES}") # needs nodes list
+auto_test(chatlog chatlinestorage "")
 auto_test(persistence paths "")
 auto_test(persistence dbschema "")
 auto_test(persistence offlinemsgengine "")
-auto_test(persistence smileypack "${${PROJECT_NAME}_RESOURCES}") # needs emojione
+if(NOT "${SMILEYS}" STREQUAL "DISABLED")
+  auto_test(persistence smileypack "${${PROJECT_NAME}_RESOURCES}") # needs emojione
+endif()
 auto_test(model friendmessagedispatcher "")
-auto_test(model groupmessagedispatcher "")
+auto_test(model groupmessagedispatcher "${MOCK_SOURCES}")
 auto_test(model messageprocessor "")
 auto_test(model sessionchatlog "")
 auto_test(model exiftransform "")
-auto_test(model notificationgenerator "")
+auto_test(model notificationgenerator "${MOCK_SOURCES}")
+auto_test(widget filesform "")
 
 if (UNIX)
   auto_test(platform posixsignalnotifier "")

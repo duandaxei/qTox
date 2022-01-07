@@ -160,19 +160,13 @@ SearchResult ChatHistory::searchBackward(SearchPos startIdx, const QString& phra
         history->getDateWhereFindPhrase(f.getPublicKey(), earliestMessageDate, phrase,
                                         parameter);
 
-    if (dateWherePhraseFound.isValid()) {
-        auto loadIdx = history->getNumMessagesForFriendBeforeDate(f.getPublicKey(), dateWherePhraseFound);
-        loadHistoryIntoSessionChatLog(ChatLogIdx(loadIdx));
+    auto loadIdx = history->getNumMessagesForFriendBeforeDate(f.getPublicKey(), dateWherePhraseFound);
+    loadHistoryIntoSessionChatLog(ChatLogIdx(loadIdx));
 
-        // Reset search pos to the message we just loaded to avoid a double search
-        startIdx.logIdx = ChatLogIdx(loadIdx);
-        startIdx.numMatches = 0;
-        return sessionChatLog.searchBackward(startIdx, phrase, parameter);
-    }
-
-    SearchResult ret;
-    ret.found = false;
-    return ret;
+    // Reset search pos to the message we just loaded to avoid a double search
+    startIdx.logIdx = ChatLogIdx(loadIdx);
+    startIdx.numMatches = 0;
+    return sessionChatLog.searchBackward(startIdx, phrase, parameter);
 }
 
 ChatLogIdx ChatHistory::getFirstIdx() const
@@ -235,7 +229,7 @@ void ChatHistory::onFileUpdated(const ToxPk& sender, const ToxFile& file)
             // initializing. If this is changed in the session chat log we'll end up
             // with a different order when loading from history
             history->addNewFileMessage(f.getPublicKey(), file.resumeFileId, file.fileName,
-                                       file.filePath, file.filesize, sender,
+                                       file.filePath, file.progress.getFileSize(), sender,
                                        QDateTime::currentDateTime(), username);
             break;
         }

@@ -23,7 +23,6 @@
 #include <QWidget>
 
 #include "src/chatlog/chatlinecontent.h"
-#include "src/chatlog/toxfileprogress.h"
 #include "src/core/toxfile.h"
 
 class CoreFile;
@@ -43,8 +42,6 @@ public:
     explicit FileTransferWidget(QWidget* parent, CoreFile& _coreFile, ToxFile file);
     virtual ~FileTransferWidget();
     bool isActive() const;
-    static QString getHumanReadableSize(qint64 size);
-
     void onFileTransferUpdate(ToxFile file);
 
 protected:
@@ -73,9 +70,6 @@ private slots:
     void onPreviewButtonClicked();
 
 private:
-    static QPixmap scaleCropIntoSquare(const QPixmap& source, int targetSize);
-    static int getExifOrientation(const char* data, const int size);
-    static void applyTransformation(const int oritentation, QImage& image);
     static bool tryRemoveFile(const QString &filepath);
 
     void updateWidget(ToxFile const& file);
@@ -84,7 +78,6 @@ private:
 private:
     CoreFile& coreFile;
     Ui::FileTransferWidget* ui;
-    ToxFileProgress fileProgress;
     ToxFile fileInfo;
     QVariantAnimation* backgroundColorAnimation = nullptr;
     QVariantAnimation* buttonColorAnimation = nullptr;
@@ -93,6 +86,7 @@ private:
     QColor buttonBackgroundColor;
 
     bool active;
+    QTime lastTransmissionUpdate;
     ToxFile::FileStatus lastStatus = ToxFile::INITIALIZING;
 
 };

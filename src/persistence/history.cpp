@@ -1009,14 +1009,19 @@ QList<History::HistMessage> History::getMessagesForFriend(const ToxPk& friendPk,
         case 'F': {
             it = std::next(row.begin(), fileOffset);
             assert(!it->isNull());
-            ToxFile file;
-            file.fileKind = TOX_FILE_KIND_DATA;
-            file.resumeFileId = (*it++).toString().toUtf8();
-            file.fileName = (*it++).toString();
-            file.filePath = (*it++).toString();
-            file.filesize = (*it++).toLongLong();
-            file.direction = static_cast<ToxFile::FileDirection>((*it++).toLongLong());
-            file.status = static_cast<ToxFile::FileStatus>((*it++).toLongLong());
+            const auto fileKind = TOX_FILE_KIND_DATA;
+            const auto resumeFileId = (*it++).toString().toUtf8();
+            const auto fileName = (*it++).toString();
+            const auto filePath = (*it++).toString();
+            const auto filesize = (*it++).toLongLong();
+            const auto direction = static_cast<ToxFile::FileDirection>((*it++).toLongLong());
+            const auto status = static_cast<ToxFile::FileStatus>((*it++).toLongLong());
+
+            ToxFile file(0, 0, fileName, filePath, filesize, direction);
+            file.fileKind = fileKind;
+            file.resumeFileId = resumeFileId;
+            file.status = status;
+
             it = std::next(row.begin(), senderOffset);
             const auto senderKey = (*it++).toString();
             const auto senderName = QString::fromUtf8((*it++).toByteArray().replace('\0', ""));
@@ -1139,14 +1144,19 @@ QDateTime History::getDateWhereFindPhrase(const ToxPk& friendPk, const QDateTime
         break;
     }
 
-    QDateTime time = from;
+    QDateTime date = from;
 
-    if (!time.isValid()) {
-        time = QDateTime::currentDateTime();
+    if (!date.isValid()) {
+        date = QDateTime::currentDateTime();
     }
 
     if (parameter.period == PeriodSearch::AfterDate || parameter.period == PeriodSearch::BeforeDate) {
-        time = parameter.time;
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
+        date = parameter.date.startOfDay();
+#else
+        date = QDateTime(parameter.date);
+#endif
     }
 
     QString period;
@@ -1156,15 +1166,15 @@ QDateTime History::getDateWhereFindPhrase(const ToxPk& friendPk, const QDateTime
         break;
     case PeriodSearch::AfterDate:
         period = QStringLiteral("AND timestamp > '%1' ORDER BY timestamp ASC LIMIT 1;")
-                     .arg(time.toMSecsSinceEpoch());
+                     .arg(date.toMSecsSinceEpoch());
         break;
     case PeriodSearch::BeforeDate:
         period = QStringLiteral("AND timestamp < '%1' ORDER BY timestamp DESC LIMIT 1;")
-                     .arg(time.toMSecsSinceEpoch());
+                     .arg(date.toMSecsSinceEpoch());
         break;
     default:
         period = QStringLiteral("AND timestamp < '%1' ORDER BY timestamp DESC LIMIT 1;")
-                     .arg(time.toMSecsSinceEpoch());
+                     .arg(date.toMSecsSinceEpoch());
         break;
     }
 
