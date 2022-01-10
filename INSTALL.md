@@ -25,7 +25,6 @@
     - [Ubuntu](#ubuntu-other-deps)
   - [Compile dependencies](#compile-dependencies)
     - [docker](#docker)
-    - [bootstrap.sh](#bootstrap.sh)
     - [Compile toxcore](#compile-toxcore)
     - [Compile extensions](#compile-extensions)
   - [Compile qTox](#compile-qtox)
@@ -287,21 +286,6 @@ Please see buildscripts/docker/Dockerfile... for your distribution for an up to 
 
 ### Compile dependencies
 
-Toxcore and ToxExt extensions can either be built with bootstrap.sh or manually.
-
-
-<a name="bootstrap.sh" />
-
-#### bootstrap.sh
-If you want to develop on your hostmachine, `bootstrap.sh` will build toxcore
-and extensions for you, allowing you to skip to [compiling qTox](#compile-qtox)
-after running it. To use it, run
-```bash
-export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/local/lib64/pkgconfig"
-export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig"
-./bootstrap.sh
-```
-
 <a name="compile-toxcore" />
 
 #### Compile toxcore
@@ -394,19 +378,6 @@ aren't listed here, and let us know what is missing `;)`
 
 ---
 
-### Building packages
-
-Alternately, qTox now has the experimental and probably-dodgy ability to package
-itself (in `.deb` form natively, and `.rpm` form with
-[alien](http://joeyh.name/code/alien/)).
-
-After installing the required dependencies, run `bootstrap.sh` and then run the
-`buildPackages.sh` script, found in the tools folder. It will automatically get
-the packages necessary for building `.deb`s, so be prepared to type your
-password for sudo.
-
----
-
 ### Security hardening with AppArmor
 
 See [AppArmor] to enable confinement for increased security.
@@ -435,54 +406,10 @@ make install clean
 
 ## OS X
 
-Supported OS X versions: >=10.8. (NOTE: only 10.13 is tested during CI)
+Supported OS X versions: >=10.13. (NOTE: only 10.13 is tested during CI)
 
 Compiling qTox on OS X for development requires 2 tools:
 [Xcode](https://developer.apple.com/xcode/) and [homebrew](https://brew.sh).
-
-### Automated Script
-
-You can now set up your OS X system to compile qTox automatically thanks to the
-script in: `./osx/qTox-Mac-Deployer-ULTIMATE.sh`
-
-This script can be run independently of the qTox repo and is all that's needed
-to build from scratch on OS X.
-
-To use this script you must launch terminal which can be found:
-`Applications > Utilities > Terminal.app`
-
-If you wish to lean more you can run `./qTox-Mac-Deployer-ULTIMATE.sh -h`
-
-Note that the script will revert any non-committed changes to qTox repository
-during the `update` phase.
-
-#### First Run / Install
-
-If you are running the script for the first time you will want to make sure your
-system is ready. To do this simply run `./qTox-Mac-Deployer-ULTIMATE.sh -i` to
-run you through the automated install set up.
-
-After running the installation setup you are now ready to build qTox from
-source, to do this simply run: `./qTox-Mac-Deployer-ULTIMATE.sh -b`
-
-If there aren't any errors then you'll find a locally working qTox application
-in your home folder under `~/qTox-Mac_Build`
-
-#### Updating
-
-If you want to update your application for testing purposes or you want to run a
-nightly build setup then run: `./qTox-Mac-Deployer-ULTIMATE.sh -u` and follow
-the prompts. (NOTE: If you know you updated the repos before running this hit Y)
-followed by `./qTox-Mac-Deployer-ULTIMATE.sh -b` to build the application once
-more. (NOTE: This will delete your previous build.)
-
-#### Deploying
-
-OS X requires an extra step to make the `qTox.app` file shareable on a system
-that doesn't have the required libraries installed already.
-
-If you want to share the build you've made with your other friends who use OS X
-then simply run: `./qTox-Mac-Deployer-ULTIMATE.sh -d`
 
 ### Manual Compiling
 #### Required Libraries
@@ -493,155 +420,52 @@ Install homebrew if you don't have it:
 ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 ```
 
-First, let's install the dependencies available via `brew`.
-
-```bash
-brew install git ffmpeg qrencode libtool automake autoconf check qt5 libvpx \
-opus sqlcipher libsodium
-```
-
-Next, install
-[toxcore](https://github.com/toktok/c-toxcore/blob/master/INSTALL.md#osx)
-
-Then, clone qTox:
+First, clone qTox.
 
 ```bash
 git clone https://github.com/qTox/qTox
+cd qTox
 ```
 
-Finally, copy all required files. Whenever you update your brew packages, you
-may skip all of the above steps and simply run the following commands:
+Then install required dependencies available via `brew`.
 
 ```bash
-cd ./git/qTox
-sudo bash bootstrap-osx.sh
+brew bundle --file osx/Brewfile
 ```
+
+Then, install [toxcore](https://github.com/toktok/c-toxcore/blob/master/INSTALL.md), [ToxExt](https://github.com/toxext/toxext), and [tox_extension_messages](https://github.com/toxext/tox_extension_messages.
+
+```bash
+buildscripts/build_toxcore_linux.sh
+```
+
+Finally, build qTox.
 
 #### Compiling
 
-You can build qTox with Qt Creator
-[seperate download](http://www.qt.io/download-open-source/#section-6) or
-manually with cmake
-
-With that; in your terminal you can compile qTox in the git dir:
-
 ```bash
-cmake .
-make
-```
-
-Or a cleaner method would be to:
-
-```bash
-cd ./git/dir/qTox
-mkdir ./build
-cd build
+mkdir -p _build
+cd _build
 cmake ..
-```
-
-#### Deploying
-
-If you compiled qTox properly you can now deploy the `qTox.app` that's created
-where you built qTox so you can distribute the package.
-
-Using your qt5 homebrew installation from the build directory:
-
-```bash
-/usr/local/Cellar/qt5/5.5.1_2/bin/macdeployqt ./qTox.app
+make -j$(sysctl -n hw.ncpu)
+make install
 ```
 
 #### Running qTox
 
-You've got 2 choices, either click on the qTox app that suddenly exists, or do
-the following:
-
-```bash
-qtox.app/Contents/MacOS/qtox
-```
-
-Enjoy the snazzy CLI output as your friends and family congratulate you on
-becoming a hacker
+`qTox.dmg` should be in your build directory. You can install qTox from the dmg
+to your Applications folder, or run qTox directly from the dmg.
 
 <a name="windows" />
 
 ## Windows
 
+Only cross-compiling from Linux is supported and tested in CI, but building
+under MSYS should also work.
+
 ### Cross-compile from Linux
 
 See [`windows/cross-compile`](windows/cross-compile).
-
-### Native
-
-#### Qt
-
-Download the Qt online installer for Windows from
-[qt.io](https://www.qt.io/download-open-source/). While installation you have
-to assemble your Qt toolchain. Take the most recent version of Qt compiled with
-MinGW. Although the installer provides its own bundled MinGW compiler toolchain
-its recommend installing it separately because Qt is missing MSYS which is
-needed to compile and install OpenAL. Thus you can - if needed - deselect the
-tab `Tools`. The following steps assume that Qt is installed at `C:\Qt`. If you
-decided to choose another location, replace corresponding parts.
-
-#### MinGW
-
-Download the MinGW installer for Windows from
-[sourceforge.net](http://sourceforge.net/projects/mingw/files/Installer/). Make
-sure to install MSYS (a set of Unix tools for Windows). The following steps
-assume that MinGW is installed at `C:\MinGW`. If you decided to choose another
-location, replace corresponding parts. Select `mingw-developer-toolkit`,
-`mingw32-base`, `mingw32-gcc-g++`, `msys-base` and `mingw32-pthreads-w32`
-packages using MinGW Installation Manager (`mingw-get.exe`). Check that the
-version of MinGW, corresponds to the version of the QT component!
-
-#### Wget
-
-Download the Wget installer for Windows from
-http://gnuwin32.sourceforge.net/packages/wget.htm. Install them. The following
-steps assume that Wget is installed at `C:\Program Files (x86)\GnuWin32\`. If you
-decided to choose another location, replace corresponding parts.
-
-#### UnZip
-
-Download the UnZip installer for Windows from
-http://gnuwin32.sourceforge.net/packages/unzip.htm. Install it. The following
-steps assume that UnZip is installed at `C:\Program Files (x86)\GnuWin32\`. If you
-decided to choose another location, replace corresponding parts.
-
-#### Setting up Path
-
-Add MinGW/MSYS/CMake binaries to the system path to make them globally
-accessible. Open `Control Panel` -> `System and Security` -> `System` ->
-`Advanced system settings` -> `Environment Variables...` (or run `sysdm.cpl`
-select tab `Advanced system settings` -> button `Environment Variables`). In the
-second box search for the `PATH` variable and press `Edit...`. The input box
-`Variable value:` should already contain some directories. Each directory is
-separated with a semicolon. Extend the input box by adding
-`;C:\MinGW\bin;C:\MinGW\msys\1.0\bin;C:\Program Files (x86)\CMake 2.8\bin;C:\Program Files (x86)\GnuWin32\bin`.
-The very first semicolon must only be added if it is missing. CMake may be added
-by installer automatically. Make sure that paths containing alternative `sh`,
-`bash` implementations such as `C:\Program Files\OpenSSH\bin` are at the end of
-`PATH` or build may fail.
-
-#### Cloning the Repository
-
-Clone the repository (https://github.com/qTox/qTox.git) with your preferred Git
-client. [SmartGit](http://www.syntevo.com/smartgit/) or
-[TorteiseGit](https://tortoisegit.org) are both very nice for this task
-(you may need to add `git.exe` to your `PATH` system variable). The
-following steps assume that you cloned the repository at `C:\qTox`. If you
-decided to choose another location, replace corresponding parts.
-
-#### Getting dependencies
-
-Run `bootstrap.bat` in the previously cloned `C:\qTox` repository. The script will
-download the other necessary dependencies, compile them and put them into their
-appropriate directories.
-
-Note that there have been detections of false positives by some anti virus software
-in the past within some of the libraries used. Please refer to the wiki page
-[problematic antiviruses](https://github.com/qTox/qTox/wiki/Problematic-antiviruses)
-for more information if you run into troubles on that front.
 
 ## Compile-time switches
 
