@@ -155,7 +155,6 @@ public:
     void savePersonal();
 
     void loadGlobal();
-    bool isToxPortable();
     void loadPersonal(QString profileName, const ToxEncrypt* passKey);
 
     void resetToDefault();
@@ -596,7 +595,6 @@ private:
     bool showIdenticons;
     bool enableIPv6;
     QString translation;
-    bool makeToxPortable;
     bool autostartInTray;
     bool closeToTray;
     bool minimizeToTray;

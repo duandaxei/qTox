@@ -27,6 +27,9 @@
 #include <QString>
 #include <QStringBuilder>
 #include <QStringList>
+#include <QSettings>
+
+#include <cassert>
 
 namespace {
 const QLatin1String globalSettingsFile{"qtox.ini"};
@@ -73,53 +76,71 @@ const QLatin1String TCSToxFileFolder{"~/.config/tox/"};
  * All qTox or Tox specific directories should be looked up through this module.
  */
 
-/**
- * @brief Paths::makePaths Factory method for the Paths object
- * @param mode
- * @return Pointer to Paths object on success, nullptr else
- */
-Paths* Paths::makePaths(Portable mode)
-{
-    bool portable = false;
-    const QString basePortable = qApp->applicationDirPath();
-    const QString baseNonPortable = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    const QString portableSettingsPath = basePortable % QDir::separator() % globalSettingsFile;
+namespace {
+    using Portable = Paths::Portable;
+    bool portableFromMode(Portable mode)
+    {
+        bool portable = false;
+        const QString basePortable = qApp->applicationDirPath();
+        const QString baseNonPortable = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        const QString portableSettingsPath = basePortable % QDir::separator() % globalSettingsFile;
 
-    switch (mode) {
-    case Portable::Portable:
-        qDebug() << "Forcing portable";
-        portable = true;
-        break;
-    case Portable::NonPortable:
-        qDebug() << "Forcing non-portable";
-        portable = false;
-        break;
-    case Portable::Auto:
-        // auto detect
-        if (QFile{portableSettingsPath}.exists()) {
-            qDebug() << "Automatic portable";
-            portable = true;
-        } else {
-            qDebug() << "Automatic non-portable";
-            portable = false;
+        switch (mode) {
+        case Portable::Portable:
+            qDebug() << "Forcing portable";
+            return true;
+        case Portable::NonPortable:
+            qDebug() << "Forcing non-portable";
+            return false;
+        case Portable::Auto:
+            if (QFile(portableSettingsPath).exists()) {
+                QSettings ps(portableSettingsPath, QSettings::IniFormat);
+                ps.setIniCodec("UTF-8");
+                ps.beginGroup("Advanced");
+                portable = ps.value("makeToxPortable", false).toBool();
+                ps.endGroup();
+            } else {
+                portable = false;
+            }
+            qDebug()<< "Auto portable mode:" << portable;
+            return portable;
         }
-        break;
+        assert(!"Unhandled enum class Paths::Portable value");
+        return false;
     }
 
-    QString basePath = portable ? basePortable : baseNonPortable;
-
-    if (basePath.isEmpty()) {
-        qCritical() << "Couldn't find writable path";
-        return nullptr;
+    QString basePathFromPortable(bool portable)
+    {
+        const QString basePortable = qApp->applicationDirPath();
+        const QString baseNonPortable = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        QString basePath = portable ? basePortable : baseNonPortable;
+        if (basePath.isEmpty()) {
+            assert(!"Couldn't find writeable path");
+            qCritical() << "Couldn't find writable path";
+        }
+        return basePath;
     }
+} // namespace
 
-    return new Paths(basePath, portable);
+Paths::Paths(Portable mode)
+{
+    portable = portableFromMode(mode);
+    basePath = basePathFromPortable(portable);
 }
 
-Paths::Paths(const QString& basePath, bool portable)
-    : basePath{basePath}
-    , portable{portable}
-{}
+/**
+ * @brief Set paths to passed portable or system wide
+ * @param newPortable
+ * @return True if portable mode changed, else false.
+ */
+bool Paths::setPortable(bool newPortable)
+{
+    auto oldVal = portable.exchange(newPortable);
+    if (oldVal != newPortable) {
+        return true;
+    }
+    return false;
+}
 
 /**
  * @brief Check if qTox is running in portable mode.
