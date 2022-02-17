@@ -22,7 +22,6 @@
 
 #include "src/core/core.h"
 #include "src/core/toxencrypt.h"
-#include "src/core/toxid.h"
 
 #include "src/net/avatarbroadcaster.h"
 
@@ -38,6 +37,7 @@
 
 class Settings;
 class QCommandLineParser;
+class ToxPk;
 
 class Profile : public QObject
 {
@@ -101,7 +101,7 @@ private slots:
     void removeAvatar(const ToxPk& owner);
     void onSaveToxSave();
     // TODO(sudden6): use ToxPk instead of friendId
-    void onAvatarOfferReceived(uint32_t friendId, uint32_t fileId, const QByteArray& avatarHash);
+    void onAvatarOfferReceived(uint32_t friendId, uint32_t fileId, const QByteArray& avatarHash, uint64_t filesize);
 
 private:
     Profile(const QString& name, std::unique_ptr<ToxEncrypt> passkey, Paths& paths, Settings &settings_);

@@ -472,11 +472,11 @@ void Profile::onSaveToxSave()
 }
 
 // TODO(sudden6): handle this better maybe?
-void Profile::onAvatarOfferReceived(uint32_t friendId, uint32_t fileId, const QByteArray& avatarHash)
+void Profile::onAvatarOfferReceived(uint32_t friendId, uint32_t fileId, const QByteArray& avatarHash, uint64_t filesize)
 {
     // accept if we don't have it already
     const bool accept = getAvatarHash(core->getFriendPublicKey(friendId)) != avatarHash;
-    core->getCoreFile()->handleAvatarOffer(friendId, fileId, accept);
+    core->getCoreFile()->handleAvatarOffer(friendId, fileId, accept, filesize);
 }
 
 /**
@@ -537,7 +537,7 @@ QString Profile::avatarPath(const ToxPk& owner, bool forceUnencrypted)
     }
 
     QByteArray idData = ownerStr.toUtf8();
-    QByteArray pubkeyData = core->getSelfId().getPublicKey().getByteArray();
+    QByteArray pubkeyData = core->getSelfPublicKey().getByteArray();
     constexpr int hashSize = TOX_PUBLIC_KEY_SIZE;
     static_assert(hashSize >= crypto_generichash_BYTES_MIN && hashSize <= crypto_generichash_BYTES_MAX,
                   "Hash size not supported by libsodium");
@@ -556,7 +556,7 @@ QString Profile::avatarPath(const ToxPk& owner, bool forceUnencrypted)
  */
 QPixmap Profile::loadAvatar()
 {
-    return loadAvatar(core->getSelfId().getPublicKey());
+    return loadAvatar(core->getSelfPublicKey());
 }
 
 /**
@@ -623,7 +623,7 @@ void Profile::loadDatabase(QString password)
         return;
     }
 
-    QByteArray salt = core->getSelfId().getPublicKey().getByteArray();
+    QByteArray salt = core->getSelfPublicKey().getByteArray();
     if (salt.size() != TOX_PASS_SALT_LENGTH) {
         qWarning() << "Couldn't compute salt from public key" << name;
         GUI::showError(QObject::tr("Error"),
@@ -758,7 +758,7 @@ QByteArray Profile::getAvatarHash(const ToxPk& owner)
  */
 void Profile::removeSelfAvatar()
 {
-    removeAvatar(core->getSelfId().getPublicKey());
+    removeAvatar(core->getSelfPublicKey());
 }
 
 /**
@@ -795,7 +795,7 @@ History* Profile::getHistory()
 void Profile::removeAvatar(const ToxPk& owner)
 {
     QFile::remove(avatarPath(owner));
-    if (owner == core->getSelfId().getPublicKey()) {
+    if (owner == core->getSelfPublicKey()) {
         setAvatar({});
     } else {
         setFriendAvatar(owner, {});
@@ -966,8 +966,8 @@ QString Profile::setPassword(const QString& newPassword)
                    "password.");
     }
 
-    QByteArray avatar = loadAvatarData(core->getSelfId().getPublicKey());
-    saveAvatar(core->getSelfId().getPublicKey(), avatar);
+    QByteArray avatar = loadAvatarData(core->getSelfPublicKey());
+    saveAvatar(core->getSelfPublicKey(), avatar);
 
     QVector<uint32_t> friendList = core->getFriendList();
     QVectorIterator<uint32_t> i(friendList);
