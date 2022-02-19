@@ -1,5 +1,5 @@
 #!/bin/bash
-
+#
 #    Copyright © 2016-2019 by The qTox Project Contributors
 #
 #    This program is libre software: you can redistribute it and/or modify
@@ -19,19 +19,7 @@
 # Fail out on error
 set -eu -o pipefail
 
-# Obtain doxygen and its deps
-sudo apt-get update -qq
-sudo apt-get install doxygen graphviz
-
-# can fail due to travis cloning only `depth=50`
-GIT_DESC=$(git describe --tags 2>/dev/null || echo HEAD)
-GIT_CHASH=$(git rev-parse HEAD)
-
-# Append git version to doxygen version string
-echo "PROJECT_NUMBER = \"Version: $GIT_DESC | Commit: $GIT_CHASH\"" >> "$DOXYGEN_CONFIG_FILE"
-
-# Generate documentation
-echo "Generating documentation..."
-echo
-
-doxygen "$DOXYGEN_CONFIG_FILE"
+# Verify commit messages
+readarray -t COMMITS <<<$(curl -s ${GITHUB_CONTEXT} | jq -r '.[0,-1].sha')
+COMMIT_RANGE="${COMMITS[0]}..${COMMITS[1]}"
+bash ./verify-commit-messages.sh "$COMMIT_RANGE"

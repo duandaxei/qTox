@@ -1,6 +1,6 @@
 #!/bin/bash
-#
-#    Copyright © 2016-2019 by The qTox Project Contributors
+
+#    Copyright © 2021 by The qTox Project Contributors
 #
 #    This program is libre software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -14,12 +14,8 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 
-# Fail out on error
-set -eu -o pipefail
-
-# Verify commit messages
-readarray -t COMMITS <<<$(curl -s ${GITHUB_CONTEXT} | jq -r '.[0,-1].sha')
-TRAVIS_COMMIT_RANGE="${COMMITS[0]}..${COMMITS[1]}"
-bash ./verify-commit-messages.sh "$TRAVIS_COMMIT_RANGE"
+# Create lcov report
+lcov --directory . --capture --output-file coverage.info
+# Filter out system headers and test sources
+lcov --remove coverage.info '/usr/*' '*/test/*' '*/*_autogen/*' --output-file coverage.info
