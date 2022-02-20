@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#    Copyright © 2021 by The qTox Project Contributors
+#    Copyright © 2022 by The qTox Project Contributors
 #
 #    This program is libre software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -17,11 +17,11 @@
 
 set -euo pipefail
 
-TOXCORE_VERSION=0.2.16
-TOXCORE_HASH=653aa42654b607f0940cecfac873e9ce55605119a90d1dc454d1090ff6ca29c0
+MSGPACK_VERSION=c-4.0.0
+MSGPACK_HASH=656ebe4566845e7bda9c097b625ba59ac72ddfd45df6017172d46d9ac7365aa3
 
-source "$(dirname "$0")"/common.sh
+source "$(dirname $0)"/common.sh
 
 download_verify_extract_tarball \
-    https://github.com/TokTok/c-toxcore/archive/v$TOXCORE_VERSION.tar.gz \
-    "$TOXCORE_HASH"
+    "https://github.com/msgpack/msgpack-c/archive/${MSGPACK_VERSION}.tar.gz" \
+    "${MSGPACK_HASH}"
