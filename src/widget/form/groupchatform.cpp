@@ -36,7 +36,7 @@
 #include "src/widget/style.h"
 #include "src/widget/tool/croppinglabel.h"
 #include "src/widget/translator.h"
-#include "src/persistence/settings.h"
+#include "src/persistence/igroupsettings.h"
 
 #include <QDragEnterEvent>
 #include <QMimeData>
@@ -82,11 +82,12 @@ QString editName(const QString& name)
  * @brief Timeout = peer stopped sending audio.
  */
 
-GroupChatForm::GroupChatForm(Core& _core, Group* chatGroup, IChatLog& chatLog, IMessageDispatcher& messageDispatcher)
+GroupChatForm::GroupChatForm(Core& _core, Group* chatGroup, IChatLog& chatLog, IMessageDispatcher& messageDispatcher, IGroupSettings& _settings)
     : GenericChatForm(_core, chatGroup, chatLog, messageDispatcher)
     , core{_core}
     , group(chatGroup)
     , inCall(false)
+    , settings(_settings)
 {
     nusersLabel = new QLabel();
 
@@ -130,7 +131,7 @@ GroupChatForm::GroupChatForm(Core& _core, Group* chatGroup, IChatLog& chatLog, I
     connect(group, &Group::userLeft, this, &GroupChatForm::onUserLeft);
     connect(group, &Group::peerNameChanged, this, &GroupChatForm::onPeerNameChanged);
     connect(group, &Group::numPeersChanged, this, &GroupChatForm::updateUserCount);
-    connect(&Settings::getInstance(), &Settings::blackListChanged, this, &GroupChatForm::updateUserNames);
+    settings.connectTo_blackListChanged(this, [this](QStringList const&) { this->updateUserNames(); });
 
     updateUserNames();
     setAcceptDrops(true);
@@ -198,12 +199,11 @@ void GroupChatForm::updateUserNames()
         label->setTextFormat(Qt::PlainText);
         label->setContextMenuPolicy(Qt::CustomContextMenu);
 
-        const Settings& s = Settings::getInstance();
         connect(label, &QLabel::customContextMenuRequested, this, &GroupChatForm::onLabelContextMenuRequested);
 
         if (peerPk == selfPk) {
             label->setProperty("peerType", LABEL_PEER_TYPE_OUR);
-        } else if (s.getBlackList().contains(peerPk.toString())) {
+        } else if (settings.getBlackList().contains(peerPk.toString())) {
             label->setProperty("peerType", LABEL_PEER_TYPE_MUTED);
         }
 
@@ -231,13 +231,17 @@ void GroupChatForm::updateUserNames()
 
 void GroupChatForm::onUserJoined(const ToxPk& user, const QString& name)
 {
-    addSystemInfoMessage(QDateTime::currentDateTime(), SystemMessageType::userJoinedGroup, {name});
+    if (settings.getShowGroupJoinLeaveMessages()) {
+        addSystemInfoMessage(QDateTime::currentDateTime(), SystemMessageType::userJoinedGroup, {name});
+    }
     updateUserNames();
 }
 
 void GroupChatForm::onUserLeft(const ToxPk& user, const QString& name)
 {
-    addSystemInfoMessage(QDateTime::currentDateTime(), SystemMessageType::userLeftGroup, {name});
+    if (settings.getShowGroupJoinLeaveMessages()) {
+        addSystemInfoMessage(QDateTime::currentDateTime(), SystemMessageType::userLeftGroup, {name});
+    }
     updateUserNames();
 }
 
@@ -389,8 +393,7 @@ void GroupChatForm::onLabelContextMenuRequested(const QPoint& localPos)
     const QPoint pos = label->mapToGlobal(localPos);
     const QString muteString = tr("mute");
     const QString unmuteString = tr("unmute");
-    Settings& s = Settings::getInstance();
-    QStringList blackList = s.getBlackList();
+    QStringList blackList = settings.getBlackList();
     QMenu* const contextMenu = new QMenu(this);
     const ToxPk selfPk = core.getSelfPublicKey();
     ToxPk peerPk;
@@ -431,7 +434,7 @@ void GroupChatForm::onLabelContextMenuRequested(const QPoint& localPos)
             blackList << peerPk.toString();
         }
 
-        s.setBlackList(blackList);
+        settings.setBlackList(blackList);
     }
 }
 
