@@ -28,18 +28,17 @@ function(auto_test subsystem module extra_deps)
   target_link_libraries(test_${module}
     ${PROJECT_NAME}_static
     ${CHECK_LIBRARIES}
-    Qt5::Test)
+    Qt5::Test
+    mock_library)
   add_test(
     NAME test_${module}
     COMMAND ${TEST_CROSSCOMPILING_EMULATOR} test_${module})
 endfunction()
 
-set(MOCK_SOURCES
-  test/mock/mockcoreidhandler.cpp
-  test/mock/mockgroupquery.cpp
-)
+add_subdirectory(test/mock)
 
 auto_test(core core "${${PROJECT_NAME}_RESOURCES}")
+auto_test(core core_online "${${PROJECT_NAME}_RESOURCES}")
 auto_test(core contactid "")
 auto_test(core toxid "")
 auto_test(core toxstring "")
@@ -55,11 +54,11 @@ if(NOT "${SMILEYS}" STREQUAL "DISABLED")
 endif()
 auto_test(model friendlistmanager "")
 auto_test(model friendmessagedispatcher "")
-auto_test(model groupmessagedispatcher "${MOCK_SOURCES}")
+auto_test(model groupmessagedispatcher "")
 auto_test(model messageprocessor "")
 auto_test(model sessionchatlog "")
 auto_test(model exiftransform "")
-auto_test(model notificationgenerator "${MOCK_SOURCES}")
+auto_test(model notificationgenerator "")
 auto_test(widget filesform "")
 
 if (UNIX)

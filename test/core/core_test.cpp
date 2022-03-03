@@ -23,6 +23,7 @@
 #include "src/net/bootstrapnodeupdater.h"
 #include "src/model/ibootstraplistgenerator.h"
 #include "src/persistence/settings.h"
+#include "mock/mockcoresettings.h"
 
 #include <QtTest/QtTest>
 #include <QtGlobal>
@@ -34,49 +35,6 @@
 
 Q_DECLARE_METATYPE(QList<DhtServer>)
 
-class MockSettings : public QObject, public ICoreSettings
-{
-Q_OBJECT
-public:
-    MockSettings() {
-        Q_INIT_RESOURCE(res);
-        qRegisterMetaType<QList<DhtServer>>("QList<DhtServer>");
-    }
-
-    bool getEnableIPv6() const override { return false; }
-    void setEnableIPv6(bool) override { }
-
-    bool getForceTCP() const override { return false; }
-    void setForceTCP(bool) override { }
-
-    bool getEnableLanDiscovery() const override { return false; }
-    void setEnableLanDiscovery(bool) override { }
-
-    QString getProxyAddr() const override { return Addr; }
-    void setProxyAddr(const QString &Addr) override { this->Addr = Addr; }
-
-    ProxyType getProxyType() const override { return type; }
-    void setProxyType(ProxyType type) override { this->type = type; }
-
-    quint16 getProxyPort() const override { return port; }
-    void setProxyPort(quint16 port) override { this->port = port; }
-
-    QNetworkProxy getProxy() const override { return QNetworkProxy(QNetworkProxy::ProxyType::NoProxy); }
-
-    SIGNAL_IMPL(MockSettings, enableIPv6Changed, bool enabled)
-    SIGNAL_IMPL(MockSettings, forceTCPChanged, bool enabled)
-    SIGNAL_IMPL(MockSettings, enableLanDiscoveryChanged, bool enabled)
-    SIGNAL_IMPL(MockSettings, proxyTypeChanged, ICoreSettings::ProxyType type)
-    SIGNAL_IMPL(MockSettings, proxyAddressChanged, const QString& address)
-    SIGNAL_IMPL(MockSettings, proxyPortChanged, quint16 port)
-
-private:
-    QList<DhtServer> dhtServerList;
-    QString Addr;
-    ProxyType type;
-    quint16 port;
-};
-
 class MockNodeListGenerator : public IBootstrapListGenerator
 {
     QList<DhtServer> getBootstrapnodes() const override;
@@ -86,7 +44,7 @@ QList<DhtServer> MockNodeListGenerator::getBootstrapnodes() const {
     return BootstrapNodeUpdater::loadDefaultBootstrapNodes();
 }
 
-class TestCore : public QObject
+class TestCoreProxy : public QObject
 {
 Q_OBJECT
 private slots:
@@ -106,7 +64,7 @@ namespace {
     const int timeout = 90000; //90 seconds timeout allowed for test
 }
 
-void TestCore::startup_without_proxy()
+void TestCoreProxy::startup_without_proxy()
 {
     settings = std::unique_ptr<MockSettings>(new MockSettings());
 
@@ -133,7 +91,7 @@ void TestCore::startup_without_proxy()
     QCOMPARE(spyCore.count(), 1); // make sure the signal was emitted exactly one time
 }
 
-void TestCore::startup_with_invalid_proxy()
+void TestCoreProxy::startup_with_invalid_proxy()
 {
     settings = std::unique_ptr<MockSettings>(new MockSettings());
 
@@ -163,5 +121,7 @@ void TestCore::startup_with_invalid_proxy()
     }
 }
 
-QTEST_GUILESS_MAIN(TestCore)
+
+
+QTEST_GUILESS_MAIN(TestCoreProxy)
 #include "core_test.moc"
