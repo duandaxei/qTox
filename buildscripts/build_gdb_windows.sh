@@ -7,7 +7,7 @@
 usage()
 {
     echo "Download and build gmp for windows"
-    echo "Usage: $0 --arch {x86_64|i686}"
+    echo "Usage: $0 --arch {win64|win32}"
 }
 
 set -euo pipefail
@@ -20,17 +20,23 @@ while (( $# > 0 )); do
     esac
 done
 
-if [ "${ARCH-x}" != "i686" ] && [ "${ARCH-x}" != "x86_64" ]; then
+if [ "$ARCH" != "win32" ] && [ "$ARCH" != "win64" ]; then
     echo "Unexpected arch $ARCH"
     usage
     exit 1
+fi
+
+if [ "${ARCH}" == "win64" ]; then
+    HOST="x86_64-w64-mingw32"
+else
+    HOST="i686-w64-mingw32"
 fi
 
 set -euo pipefail
 
 "$(dirname $0)"/download/download_gdb.sh
 
-CFLAGS="-O2 -g0" ./configure --host="$ARCH-w64-mingw32" \
+CFLAGS="-O2 -g0" ./configure --host="${HOST}" \
                                 --prefix="/windows" \
                                 --enable-static \
                                 --disable-shared
