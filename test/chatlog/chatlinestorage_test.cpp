@@ -25,9 +25,9 @@ namespace
     class IdxChatLine : public ChatLine
     {
     public:
-        explicit IdxChatLine(ChatLogIdx idx)
+        explicit IdxChatLine(ChatLogIdx idx_)
             : ChatLine()
-            , idx(idx)
+            , idx(idx_)
         {}
 
         ChatLogIdx get() { return idx; }
@@ -349,5 +349,5 @@ void TestChatLineStorage::testConsecutiveDateLineRemoval()
     QCOMPARE(idxFromChatLine(storage[newItemIdxStart + 1]).get(), todayPlus2Idx.get());
 }
 
-QTEST_GUILESS_MAIN(TestChatLineStorage);
+QTEST_GUILESS_MAIN(TestChatLineStorage)
 #include "chatlinestorage_test.moc"

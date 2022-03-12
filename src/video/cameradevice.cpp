@@ -71,15 +71,17 @@ using AvFindInputFormatRet = decltype(av_find_input_format(""));
  * @brief Number of times the device was opened
  */
 
+namespace {
+AvFindInputFormatRet idesktopFormat{nullptr};
+AvFindInputFormatRet iformat{nullptr};
+} // namespace
 
 QHash<QString, CameraDevice*> CameraDevice::openDevices;
 QMutex CameraDevice::openDeviceLock, CameraDevice::iformatLock;
-static AvFindInputFormatRet idesktopFormat{nullptr};
-static AvFindInputFormatRet iformat{nullptr};
 
-CameraDevice::CameraDevice(const QString& devName, AVFormatContext* context)
-    : devName{devName}
-    , context{context}
+CameraDevice::CameraDevice(const QString& devName_, AVFormatContext* context_)
+    : devName{devName_}
+    , context{context_}
     , refcount{1}
 {
 }
@@ -112,7 +114,7 @@ CameraDevice* CameraDevice::open(QString devName, AVDictionary** options)
     }
 
 // Fix avformat_find_stream_info hanging on garbage input
-#if FF_API_PROBESIZE_32
+#if defined FF_API_PROBESIZE_32 && FF_API_PROBESIZE_32
     aduration = fctx->max_analyze_duration2 = 0;
 #else
     aduration = fctx->max_analyze_duration = 0;
@@ -123,7 +125,7 @@ CameraDevice* CameraDevice::open(QString devName, AVDictionary** options)
         goto out;
     }
 
-#if FF_API_PROBESIZE_32
+#if defined FF_API_PROBESIZE_32 && FF_API_PROBESIZE_32
     fctx->max_analyze_duration2 = aduration;
 #else
     fctx->max_analyze_duration = aduration;
@@ -232,7 +234,7 @@ CameraDevice* CameraDevice::open(QString devName, VideoMode mode)
 #endif
     else if (mode) {
         qWarning().nospace() << "No known options for " << iformat->name << ", using defaults.";
-        Q_UNUSED(mode)
+        std::ignore = mode;
     }
 
     CameraDevice* dev = open(devName, &options);
@@ -450,7 +452,7 @@ QVector<VideoMode> CameraDevice::getScreenModes()
  */
 QVector<VideoMode> CameraDevice::getVideoModes(QString devName)
 {
-    Q_UNUSED(devName)
+    std::ignore = devName;
 
     if (!iformat)
         ;
@@ -484,6 +486,7 @@ QString CameraDevice::getPixelFormatString(uint32_t pixel_format)
 #if USING_V4L
     return v4l2::getPixelFormatString(pixel_format);
 #else
+    std::ignore = pixel_format;
     return QString("unknown");
 #endif
 }
@@ -500,6 +503,8 @@ bool CameraDevice::betterPixelFormat(uint32_t a, uint32_t b)
 #if USING_V4L
     return v4l2::betterPixelFormat(a, b);
 #else
+    std::ignore = a;
+    std::ignore = b;
     return false;
 #endif
 }

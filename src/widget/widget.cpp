@@ -137,15 +137,15 @@ void Widget::acceptFileTransfer(const ToxFile& file, const QString& path)
 
 Widget* Widget::instance{nullptr};
 
-Widget::Widget(Profile &_profile, IAudioControl& audio, QWidget* parent)
+Widget::Widget(Profile &profile_, IAudioControl& audio_, QWidget* parent)
     : QMainWindow(parent)
-    , profile{_profile}
+    , profile{profile_}
     , trayMenu{nullptr}
     , ui(new Ui::MainWindow)
     , activeChatroomWidget{nullptr}
     , eventFlag(false)
     , eventIcon(false)
-    , audio(audio)
+    , audio(audio_)
     , settings(Settings::getInstance())
 {
     installEventFilter(this);
@@ -669,7 +669,7 @@ void Widget::changeEvent(QEvent* event)
 {
     if (event->type() == QEvent::WindowStateChange) {
         if (isMinimized() && settings.getShowSystemTray() && settings.getMinimizeToTray()) {
-            this->hide();
+            hide();
         }
     }
 }
@@ -690,46 +690,46 @@ void Widget::onSelfAvatarLoaded(const QPixmap& pic)
     profilePicture->setPixmap(pic);
 }
 
-void Widget::onCoreChanged(Core& core)
+void Widget::onCoreChanged(Core& core_)
 {
+    core = &core_;
+    connect(core, &Core::connected, this, &Widget::onConnected);
+    connect(core, &Core::disconnected, this, &Widget::onDisconnected);
+    connect(core, &Core::statusSet, this, &Widget::onStatusSet);
+    connect(core, &Core::usernameSet, this, &Widget::setUsername);
+    connect(core, &Core::statusMessageSet, this, &Widget::setStatusMessage);
+    connect(core, &Core::friendAdded, this, &Widget::addFriend);
+    connect(core, &Core::failedToAddFriend, this, &Widget::addFriendFailed);
+    connect(core, &Core::friendUsernameChanged, this, &Widget::onFriendUsernameChanged);
+    connect(core, &Core::friendStatusChanged, this, &Widget::onCoreFriendStatusChanged);
+    connect(core, &Core::friendStatusMessageChanged, this, &Widget::onFriendStatusMessageChanged);
+    connect(core, &Core::friendRequestReceived, this, &Widget::onFriendRequestReceived);
+    connect(core, &Core::friendMessageReceived, this, &Widget::onFriendMessageReceived);
+    connect(core, &Core::receiptRecieved, this, &Widget::onReceiptReceived);
+    connect(core, &Core::groupInviteReceived, this, &Widget::onGroupInviteReceived);
+    connect(core, &Core::groupMessageReceived, this, &Widget::onGroupMessageReceived);
+    connect(core, &Core::groupPeerlistChanged, this, &Widget::onGroupPeerlistChanged);
+    connect(core, &Core::groupPeerNameChanged, this, &Widget::onGroupPeerNameChanged);
+    connect(core, &Core::groupTitleChanged, this, &Widget::onGroupTitleChanged);
+    connect(core, &Core::groupPeerAudioPlaying, this, &Widget::onGroupPeerAudioPlaying);
+    connect(core, &Core::emptyGroupCreated, this, &Widget::onEmptyGroupCreated);
+    connect(core, &Core::groupJoined, this, &Widget::onGroupJoined);
+    connect(core, &Core::friendTypingChanged, this, &Widget::onFriendTypingChanged);
+    connect(core, &Core::groupSentFailed, this, &Widget::onGroupSendFailed);
+    connect(core, &Core::usernameSet, this, &Widget::refreshPeerListsLocal);
 
-    connect(&core, &Core::connected, this, &Widget::onConnected);
-    connect(&core, &Core::disconnected, this, &Widget::onDisconnected);
-    connect(&core, &Core::statusSet, this, &Widget::onStatusSet);
-    connect(&core, &Core::usernameSet, this, &Widget::setUsername);
-    connect(&core, &Core::statusMessageSet, this, &Widget::setStatusMessage);
-    connect(&core, &Core::friendAdded, this, &Widget::addFriend);
-    connect(&core, &Core::failedToAddFriend, this, &Widget::addFriendFailed);
-    connect(&core, &Core::friendUsernameChanged, this, &Widget::onFriendUsernameChanged);
-    connect(&core, &Core::friendStatusChanged, this, &Widget::onCoreFriendStatusChanged);
-    connect(&core, &Core::friendStatusMessageChanged, this, &Widget::onFriendStatusMessageChanged);
-    connect(&core, &Core::friendRequestReceived, this, &Widget::onFriendRequestReceived);
-    connect(&core, &Core::friendMessageReceived, this, &Widget::onFriendMessageReceived);
-    connect(&core, &Core::receiptRecieved, this, &Widget::onReceiptReceived);
-    connect(&core, &Core::groupInviteReceived, this, &Widget::onGroupInviteReceived);
-    connect(&core, &Core::groupMessageReceived, this, &Widget::onGroupMessageReceived);
-    connect(&core, &Core::groupPeerlistChanged, this, &Widget::onGroupPeerlistChanged);
-    connect(&core, &Core::groupPeerNameChanged, this, &Widget::onGroupPeerNameChanged);
-    connect(&core, &Core::groupTitleChanged, this, &Widget::onGroupTitleChanged);
-    connect(&core, &Core::groupPeerAudioPlaying, this, &Widget::onGroupPeerAudioPlaying);
-    connect(&core, &Core::emptyGroupCreated, this, &Widget::onEmptyGroupCreated);
-    connect(&core, &Core::groupJoined, this, &Widget::onGroupJoined);
-    connect(&core, &Core::friendTypingChanged, this, &Widget::onFriendTypingChanged);
-    connect(&core, &Core::groupSentFailed, this, &Widget::onGroupSendFailed);
-    connect(&core, &Core::usernameSet, this, &Widget::refreshPeerListsLocal);
-
-    auto coreExt = core.getExt();
+    auto coreExt = core->getExt();
 
     connect(coreExt, &CoreExt::extendedMessageReceived, this, &Widget::onFriendExtMessageReceived);
     connect(coreExt, &CoreExt::extendedReceiptReceived, this, &Widget::onExtReceiptReceived);
     connect(coreExt, &CoreExt::extendedMessageSupport, this, &Widget::onExtendedMessageSupport);
 
-    connect(this, &Widget::statusSet, &core, &Core::setStatus);
-    connect(this, &Widget::friendRequested, &core, &Core::requestFriendship);
-    connect(this, &Widget::friendRequestAccepted, &core, &Core::acceptFriendRequest);
-    connect(this, &Widget::changeGroupTitle, &core, &Core::changeGroupTitle);
+    connect(this, &Widget::statusSet, core, &Core::setStatus);
+    connect(this, &Widget::friendRequested, core, &Core::requestFriendship);
+    connect(this, &Widget::friendRequestAccepted, core, &Core::acceptFriendRequest);
+    connect(this, &Widget::changeGroupTitle, core, &Core::changeGroupTitle);
 
-    sharedMessageProcessorParams->setPublicKey(core.getSelfPublicKey().toString());
+    sharedMessageProcessorParams->setPublicKey(core->getSelfPublicKey().toString());
 }
 
 void Widget::onConnected()
@@ -828,10 +828,10 @@ void Widget::onSeparateWindowChanged(bool separate, bool clicked)
             resize(width, height());
 
             if (settingsWidget) {
-                ContentLayout* contentLayout = createContentDialog((DialogType::SettingDialog));
-                contentLayout->parentWidget()->resize(size);
-                contentLayout->parentWidget()->move(pos);
-                settingsWidget->show(contentLayout);
+                ContentLayout* contentLayout_ = createContentDialog((DialogType::SettingDialog));
+                contentLayout_->parentWidget()->resize(size);
+                contentLayout_->parentWidget()->move(pos);
+                settingsWidget->show(contentLayout_);
                 setActiveToolMenuButton(ActiveToolMenuButton::None);
             }
         }
@@ -1204,6 +1204,7 @@ void Widget::addFriend(uint32_t friendId, const ToxPk& friendPk)
 
 
     auto notifyReceivedCallback = [this, friendPk](const ToxPk& author, const Message& message) {
+        std::ignore = author;
         newFriendMessageAlert(friendPk, message.content);
     };
 
@@ -1266,12 +1267,12 @@ void Widget::onCoreFriendStatusChanged(int friendId, Status::Status status)
     auto const startedNegotiating = (newStatus == Status::Status::Negotiating && oldStatus != newStatus);
     if (startedNegotiating) {
         constexpr auto negotiationTimeoutMs = 1000;
-        auto timer = std::unique_ptr<QTimer>(new QTimer);
-        timer->setSingleShot(true);
-        timer->setInterval(negotiationTimeoutMs);
-        connect(timer.get(), &QTimer::timeout, f, &Friend::onNegotiationComplete);
-        timer->start();
-        negotiateTimers[friendPk] = std::move(timer);
+        auto negotiateTimer = std::unique_ptr<QTimer>(new QTimer);
+        negotiateTimer->setSingleShot(true);
+        negotiateTimer->setInterval(negotiationTimeoutMs);
+        connect(negotiateTimer.get(), &QTimer::timeout, f, &Friend::onNegotiationComplete);
+        negotiateTimer->start();
+        negotiateTimers[friendPk] = std::move(negotiateTimer);
     }
 
     // Any widget behavior will be triggered based off of the status
@@ -1399,7 +1400,6 @@ void Widget::openDialog(GenericChatroomWidget* widget, bool newWindow)
         if (frnd) {
             addFriendDialog(frnd, dialog);
         } else {
-            Group* group = widget->getGroup();
             addGroupDialog(group, dialog);
         }
 
@@ -1499,11 +1499,11 @@ void Widget::addFriendDialog(const Friend* frnd, ContentDialog* dialog)
             [=](QContextMenuEvent* event) { emit widget->contextMenuCalled(event); });
 
     connect(friendWidget, &FriendWidget::chatroomWidgetClicked, [=](GenericChatroomWidget* w) {
-        Q_UNUSED(w)
+        std::ignore = w;
         emit widget->chatroomWidgetClicked(widget);
     });
     connect(friendWidget, &FriendWidget::newWindowOpened, [=](GenericChatroomWidget* w) {
-        Q_UNUSED(w)
+        std::ignore = w;
         emit widget->newWindowOpened(widget);
     });
     // FIXME: emit should be removed
@@ -1518,7 +1518,7 @@ void Widget::addFriendDialog(const Friend* frnd, ContentDialog* dialog)
     }
 }
 
-void Widget::addGroupDialog(Group* group, ContentDialog* dialog)
+void Widget::addGroupDialog(const Group* group, ContentDialog* dialog)
 {
     const GroupId& groupId = group->getPersistentId();
     ContentDialog* groupDialog = ContentDialogManager::getInstance()->getGroupDialog(groupId);
@@ -1550,12 +1550,12 @@ void Widget::addGroupDialog(Group* group, ContentDialog* dialog)
     // ContentDialog) to the `widget` (which shown in main widget)
     // FIXME: emit should be removed
     connect(groupWidget, &GroupWidget::chatroomWidgetClicked, [=](GenericChatroomWidget* w) {
-        Q_UNUSED(w)
+        std::ignore = w;
         emit widget->chatroomWidgetClicked(widget);
     });
 
     connect(groupWidget, &GroupWidget::newWindowOpened, [=](GenericChatroomWidget* w) {
-        Q_UNUSED(w)
+        std::ignore = w;
         emit widget->newWindowOpened(widget);
     });
 
@@ -1603,6 +1603,10 @@ bool Widget::newFriendMessageAlert(const ToxPk& friendId, const QString& text, b
         auto notificationData = filename.isEmpty() ? notificationGenerator->friendMessageNotification(f, text)
                                                    : notificationGenerator->fileTransferNotification(f, filename, filesize);
         notifier.notifyMessage(notificationData);
+#else
+        std::ignore = text;
+        std::ignore = filename;
+        std::ignore = filesize;
 #endif
 
         if (contentDialog == nullptr) {
@@ -1645,6 +1649,9 @@ bool Widget::newGroupMessageAlert(const GroupId& groupId, const ToxPk& authorPk,
 #if DESKTOP_NOTIFICATIONS
     auto notificationData = notificationGenerator->groupMessageNotification(g, authorPk, message);
     notifier.notifyMessage(notificationData);
+#else
+    std::ignore = authorPk;
+    std::ignore = message;
 #endif
 
     if (contentDialog == nullptr) {
@@ -1873,11 +1880,11 @@ ContentLayout* Widget::createContentDialog(DialogType type) const
     class Dialog : public ActivateDialog
     {
     public:
-        explicit Dialog(DialogType type, Settings& settings, Core* core)
+        explicit Dialog(DialogType type_, Settings& settings_, Core* core_)
             : ActivateDialog(nullptr, Qt::Window)
-            , type(type)
-            , settings(settings)
-            , core{core}
+            , type(type_)
+            , settings(settings_)
+            , core{core_}
         {
             restoreGeometry(settings.getDialogSettingsGeometry());
             Translator::registerHandler(std::bind(&Dialog::retranslateUi, this), this);
@@ -2400,8 +2407,8 @@ void Widget::saveSplitterGeometry()
 
 void Widget::onSplitterMoved(int pos, int index)
 {
-    Q_UNUSED(pos)
-    Q_UNUSED(index)
+    std::ignore = pos;
+    std::ignore = index;
     saveSplitterGeometry();
 }
 
@@ -2459,7 +2466,7 @@ void Widget::reloadTheme()
         x->setStyleSheet("");
     }
 
-    this->setStyleSheet(Style::getStylesheet("window/general.css"));
+    setStyleSheet(Style::getStylesheet("window/general.css"));
     QString statusPanelStyle = Style::getStylesheet("window/statusPanel.css");
     ui->tooliconsZone->setStyleSheet(Style::getStylesheet("tooliconsZone/tooliconsZone.css"));
     ui->statusPanel->setStyleSheet(statusPanelStyle);
@@ -2503,6 +2510,9 @@ inline QIcon Widget::prepareIcon(QString path, int w, int h)
             return QIcon(pm);
         }
     }
+#else
+    std::ignore = w;
+    std::ignore = h;
 #endif
     return QIcon(path);
 }

@@ -60,7 +60,7 @@ void Spinner::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, Q
 {
     painter->setClipRect(boundingRect());
 
-    QTransform trans = QTransform().rotate(curRot)
+    QTransform trans = QTransform().rotate(static_cast<qreal>(curRot))
                            .translate(-size.width() / 2.0, -size.height() / 2.0);
     painter->setOpacity(alpha);
     painter->setTransform(trans, true);
@@ -71,13 +71,13 @@ void Spinner::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, Q
         timer.start(); // update bounding rectangle for next frame
     }
 
-    Q_UNUSED(option)
-    Q_UNUSED(widget)
+    std::ignore = option;
+    std::ignore = widget;
 }
 
-void Spinner::setWidth(qreal width)
+void Spinner::setWidth(float width)
 {
-    Q_UNUSED(width)
+    std::ignore = width;
 }
 
 qreal Spinner::getAscent() const

@@ -41,7 +41,6 @@ void applyGain(int16_t* buffer, uint32_t bufferSize, qreal gainFactor)
                             std::numeric_limits<int16_t>::max());
     }
 }
-} // namespace
 
 /**
  * @class OpenAL
@@ -54,8 +53,10 @@ void applyGain(int16_t* buffer, uint32_t bufferSize, qreal gainFactor)
  * @brief Ideally, we'd auto-detect, but that's a sane default
  */
 
-static const unsigned int BUFFER_COUNT = 16;
-static const uint32_t AUDIO_CHANNELS = 2;
+const unsigned int BUFFER_COUNT = 16;
+const uint32_t AUDIO_CHANNELS = 2;
+} // namespace
+
 constexpr qreal OpenAL::minInGain;
 constexpr qreal OpenAL::maxInGain;
 
@@ -380,12 +381,12 @@ bool OpenAL::initInput(const QString& deviceName, uint32_t channels)
     assert(!alInDev);
 
     // TODO: Try to actually detect if our audio source is stereo
-    this->channels = channels;
-    int stereoFlag = channels == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
+    inputChannels = channels;
+    int stereoFlag = inputChannels == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
     const int bytesPerSample = 2;
     const int safetyFactor = 2; // internal OpenAL ring buffer. must be larger than our inputBuffer
                                 // to avoid the ring from overwriting itself between captures.
-    AUDIO_FRAME_SAMPLE_COUNT_TOTAL = AUDIO_FRAME_SAMPLE_COUNT_PER_CHANNEL * channels;
+    AUDIO_FRAME_SAMPLE_COUNT_TOTAL = AUDIO_FRAME_SAMPLE_COUNT_PER_CHANNEL * inputChannels;
     const ALCsizei ringBufSize = AUDIO_FRAME_SAMPLE_COUNT_TOTAL * bytesPerSample * safetyFactor;
 
     const QByteArray qDevName = deviceName.toUtf8();
@@ -661,7 +662,7 @@ void OpenAL::doInput()
 
     // NOTE(sudden6): this loop probably doesn't scale too well with many sources
     for (auto source : sources) {
-        emit source->frameAvailable(inputBuffer, AUDIO_FRAME_SAMPLE_COUNT_PER_CHANNEL, channels,
+        emit source->frameAvailable(inputBuffer, AUDIO_FRAME_SAMPLE_COUNT_PER_CHANNEL, inputChannels,
                                     AUDIO_SAMPLE_RATE);
     }
 }

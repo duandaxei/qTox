@@ -63,12 +63,12 @@ ChatMessage::Ptr ChatMessage::createChatMessage(const QString& sender, const QSt
 
     // quotes (green text)
     text = detectQuotes(text, type);
-    text = highlightURI(text);
+    text = TextFormatter::highlightURI(text);
 
     // text styling
     Settings::StyleType styleType = Settings::getInstance().getStylePreference();
     if (styleType != Settings::StyleType::NONE) {
-        text = applyMarkdown(text, styleType == Settings::StyleType::WITH_CHARS);
+        text = TextFormatter::applyMarkdown(text, styleType == Settings::StyleType::WITH_CHARS);
     }
 
 
@@ -96,7 +96,7 @@ ChatMessage::Ptr ChatMessage::createChatMessage(const QString& sender, const QSt
     QColor color = Style::getColor(Style::MainText);
     if (colorizeName) {
         QByteArray hash = QCryptographicHash::hash((sender.toUtf8()), QCryptographicHash::Sha256);
-        float lightness = color.lightnessF();
+        auto lightness = color.lightnessF();
         // Adapt as good as possible to Light/Dark themes
         lightness = lightness*0.5 + 0.3;
 

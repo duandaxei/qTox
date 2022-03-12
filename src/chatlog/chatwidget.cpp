@@ -48,9 +48,9 @@ namespace
 {
 
 // Maximum number of rendered messages at any given time
-static int constexpr maxWindowSize = 300;
+int constexpr maxWindowSize = 300;
 // Amount of messages to purge when removing messages
-static int constexpr windowChunkSize = 100;
+int constexpr windowChunkSize = 100;
 
 template <class T>
 T clamp(T x, T min, T max)
@@ -204,10 +204,10 @@ ChatLogIdx clampedAdd(ChatLogIdx idx, int val, IChatLog& chatLog)
 } // namespace
 
 
-ChatWidget::ChatWidget(IChatLog& chatLog, const Core& core, QWidget* parent)
+ChatWidget::ChatWidget(IChatLog& chatLog_, const Core& core_, QWidget* parent)
     : QGraphicsView(parent)
-    , chatLog(chatLog)
-    , core(core)
+    , chatLog(chatLog_)
+    , core(core_)
     , chatLineStorage(new ChatLineStorage())
 {
     // Create the scene
@@ -287,11 +287,11 @@ ChatWidget::ChatWidget(IChatLog& chatLog, const Core& core, QWidget* parent)
     Translator::registerHandler(std::bind(&ChatWidget::retranslateUi, this), this);
 
     connect(this, &ChatWidget::renderFinished, this, &ChatWidget::onRenderFinished);
-    connect(&chatLog, &IChatLog::itemUpdated, this, &ChatWidget::onMessageUpdated);
+    connect(&chatLog_, &IChatLog::itemUpdated, this, &ChatWidget::onMessageUpdated);
     connect(verticalScrollBar(), &QScrollBar::valueChanged, this, &ChatWidget::onScrollValueChanged);
 
-    auto firstChatLogIdx = clampedAdd(chatLog.getNextIdx(), -100, chatLog);
-    renderMessages(firstChatLogIdx, chatLog.getNextIdx());
+    auto firstChatLogIdx = clampedAdd(chatLog_.getNextIdx(), -100, chatLog_);
+    renderMessages(firstChatLogIdx, chatLog_.getNextIdx());
 }
 
 ChatWidget::~ChatWidget()
@@ -529,8 +529,6 @@ void ChatWidget::insertChatlines(std::map<ChatLogIdx, ChatLine::Ptr> chatLines)
     for (auto const& chatLine : chatLines) {
         auto idx = chatLine.first;
         auto const& l = chatLine.second;
-
-        auto insertedMessageIt = chatLineStorage->insertChatMessage(idx, chatLog.at(idx).getTimestamp(), l);
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
         auto date = chatLog.at(idx).getTimestamp().date().startOfDay();
@@ -864,8 +862,6 @@ void ChatWidget::handleSearchResult(SearchResult result, SearchDirection directi
     disableSearchText();
 
     searchPos = result.pos;
-
-    auto const firstRenderedIdx = (chatLineStorage->hasIndexedMessage()) ? chatLineStorage->firstIdx() : chatLog.getNextIdx();
 
     auto selectText = [this, result] {
         // With fast changes our callback could become invalid, ensure that the
@@ -1308,6 +1304,7 @@ void ChatWidget::showEvent(QShowEvent*)
 
 void ChatWidget::hideEvent(QHideEvent* event)
 {
+    std::ignore = event;
     // Purge accumulated lines from the chatlog. We do not purge messages while
     // the chatlog is open because it causes flickers. When a user leaves the
     // chat we take the opportunity to remove old messages. If a user only has
@@ -1402,7 +1399,7 @@ void ChatWidget::setTypingNotification()
 }
 
 
-void ChatWidget::renderItem(const ChatLogItem& item, bool hideName, bool colorizeNames, ChatLine::Ptr& chatMessage)
+void ChatWidget::renderItem(const ChatLogItem& item, bool hideName, bool colorizeNames_, ChatLine::Ptr& chatMessage)
 {
     const auto& sender = item.getSender();
 
@@ -1412,7 +1409,7 @@ void ChatWidget::renderItem(const ChatLogItem& item, bool hideName, bool coloriz
     case ChatLogItem::ContentType::message: {
         const auto& chatLogMessage = item.getContentAsMessage();
 
-        renderMessageRaw(item.getDisplayName(), isSelf, colorizeNames, chatLogMessage, chatMessage);
+        renderMessageRaw(item.getDisplayName(), isSelf, colorizeNames_, chatLogMessage, chatMessage);
 
         break;
     }

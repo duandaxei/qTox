@@ -28,19 +28,20 @@
 #include <set>
 #include <deque>
 
-static constexpr uint64_t testMaxExtendedMessageSize = 10 * 1024 * 1024;
-
+namespace {
+constexpr uint64_t testMaxExtendedMessageSize = 10 * 1024 * 1024;
+}
 
 class MockCoreExtPacket : public ICoreExtPacket
 {
 public:
 
-    MockCoreExtPacket(uint64_t& numSentMessages, uint64_t& currentReceiptId)
-        : numSentMessages(numSentMessages)
-        , currentReceiptId(currentReceiptId)
+    MockCoreExtPacket(uint64_t& numSentMessages_, uint64_t& currentReceiptId_)
+        : numSentMessages(numSentMessages_)
+        , currentReceiptId(currentReceiptId_)
     {}
 
-    uint64_t addExtendedMessage(QString message) override;
+    uint64_t addExtendedMessage(QString message_) override;
 
     bool send() override;
 
@@ -50,9 +51,9 @@ public:
     QString message;
 };
 
-uint64_t MockCoreExtPacket::addExtendedMessage(QString message)
+uint64_t MockCoreExtPacket::addExtendedMessage(QString message_)
 {
-    this->message = message;
+    message = message_;
     return currentReceiptId++;
 }
 
@@ -73,6 +74,7 @@ public:
 
 std::unique_ptr<ICoreExtPacket> MockCoreExtPacketAllocator::getPacket(uint32_t friendId)
 {
+    std::ignore = friendId;
     return std::unique_ptr<MockCoreExtPacket>(new MockCoreExtPacket(numSentMessages, currentReceiptId));
 }
 
@@ -91,6 +93,8 @@ public:
 
 bool MockFriendMessageSender::sendAction(uint32_t friendId, const QString& action, ReceiptNum& receipt)
 {
+    std::ignore = friendId;
+    std::ignore = action;
     if (canSend) {
         numSentActions++;
         receipt = receiptNum;
@@ -101,6 +105,8 @@ bool MockFriendMessageSender::sendAction(uint32_t friendId, const QString& actio
 
 bool MockFriendMessageSender::sendMessage(uint32_t friendId, const QString& message, ReceiptNum& receipt)
 {
+    std::ignore = friendId;
+    std::ignore = message;
     if (canSend) {
         numSentMessages++;
         receipt = receiptNum;
@@ -144,6 +150,7 @@ private slots:
 
     void onMessageReceived(const ToxPk& sender, Message message)
     {
+        std::ignore = sender;
         receivedMessages.push_back(std::move(message));
     }
 

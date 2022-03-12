@@ -47,9 +47,10 @@
 #include "platform/posixsignalnotifier.h"
 #endif
 
+namespace {
 #ifdef LOG_TO_FILE
-static QAtomicPointer<FILE> logFileFile = nullptr;
-static QList<QByteArray>* logBuffer =
+QAtomicPointer<FILE> logFileFile = nullptr;
+QList<QByteArray>* logBuffer =
     new QList<QByteArray>(); // Store log messages until log file opened
 QMutex* logBufferMutex = new QMutex();
 #endif
@@ -162,8 +163,8 @@ void logMessageHandler(QtMsgType type, const QMessageLogContext& ctxt, const QSt
         logBufferMutex->lock();
         if (logBuffer) {
             // empty logBuffer to file
-            foreach (QByteArray msg, *logBuffer)
-                fwrite(msg.constData(), 1, msg.size(), logFilePtr);
+            foreach (QByteArray bufferedMsg, *logBuffer)
+                fwrite(bufferedMsg.constData(), 1, bufferedMsg.size(), logFilePtr);
 
             delete logBuffer; // no longer needed
             logBuffer = nullptr;
@@ -176,9 +177,9 @@ void logMessageHandler(QtMsgType type, const QMessageLogContext& ctxt, const QSt
 #endif
 }
 
-static std::unique_ptr<ToxURIDialog> uriDialog;
+std::unique_ptr<ToxURIDialog> uriDialog;
 
-static bool toxURIEventHandler(const QByteArray& eventData)
+bool toxURIEventHandler(const QByteArray& eventData)
 {
     if (!eventData.startsWith("tox:")) {
         return false;
@@ -190,6 +191,7 @@ static bool toxURIEventHandler(const QByteArray& eventData)
 
     uriDialog->handleToxURI(eventData);
     return true;
+}
 }
 
 int main(int argc, char* argv[])

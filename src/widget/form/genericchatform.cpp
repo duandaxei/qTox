@@ -64,11 +64,12 @@
  * elements and methods to work with chat messages.
  */
 
-static const QSize FILE_FLYOUT_SIZE{24, 24};
-static const short FOOT_BUTTONS_SPACING = 2;
-static const short MESSAGE_EDIT_HEIGHT = 50;
-static const short MAIN_FOOT_LAYOUT_SPACING = 5;
-static const QString FONT_STYLE[]{"normal", "italic", "oblique"};
+namespace {
+const QSize FILE_FLYOUT_SIZE{24, 24};
+const short FOOT_BUTTONS_SPACING = 2;
+const short MESSAGE_EDIT_HEIGHT = 50;
+const short MAIN_FOOT_LAYOUT_SPACING = 5;
+const QString FONT_STYLE[]{"normal", "italic", "oblique"};
 
 /**
  * @brief Creates CSS style string for needed class with specified font
@@ -76,7 +77,7 @@ static const QString FONT_STYLE[]{"normal", "italic", "oblique"};
  * @param name Class name
  * @return Style string
  */
-static QString fontToCss(const QFont& font, const QString& name)
+QString fontToCss(const QFont& font, const QString& name)
 {
     QString result{"%1{"
                    "font-family: \"%2\"; "
@@ -85,6 +86,7 @@ static QString fontToCss(const QFont& font, const QString& name)
                    "font-weight: normal;}"};
     return result.arg(name).arg(font.family()).arg(font.pixelSize()).arg(FONT_STYLE[font.style()]);
 }
+} // namespace
 
 /**
  * @brief Searches for name (possibly alias) of someone with specified public key among all of your
@@ -134,20 +136,20 @@ QPushButton* createButton(const QString& name, T* self, Fun onClickSlot)
 
 } // namespace
 
-GenericChatForm::GenericChatForm(const Core& _core, const Contact* contact, IChatLog& chatLog,
-                                 IMessageDispatcher& messageDispatcher, QWidget* parent)
-    : QWidget(parent, Qt::Window)
-    , core{_core}
+GenericChatForm::GenericChatForm(const Core& core_, const Contact* contact, IChatLog& chatLog_,
+                                 IMessageDispatcher& messageDispatcher_, QWidget* parent_)
+    : QWidget(parent_, Qt::Window)
+    , core{core_}
     , audioInputFlag(false)
     , audioOutputFlag(false)
-    , chatLog(chatLog)
-    , messageDispatcher(messageDispatcher)
+    , chatLog(chatLog_)
+    , messageDispatcher(messageDispatcher_)
 {
     curRow = 0;
     headWidget = new ChatFormHeader();
     searchForm = new SearchForm();
     dateInfo = new QLabel(this);
-    chatWidget = new ChatWidget(chatLog, core, this);
+    chatWidget = new ChatWidget(chatLog_, core, this);
     searchForm->hide();
     dateInfo->setAlignment(Qt::AlignHCenter);
     dateInfo->setVisible(false);
@@ -363,9 +365,9 @@ void GenericChatForm::setName(const QString& newName)
     headWidget->setName(newName);
 }
 
-void GenericChatForm::show(ContentLayout* contentLayout)
+void GenericChatForm::show(ContentLayout* contentLayout_)
 {
-    contentLayout->mainHead->layout()->addWidget(headWidget);
+    contentLayout_->mainHead->layout()->addWidget(headWidget);
     headWidget->show();
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 12, 4) && QT_VERSION > QT_VERSION_CHECK(5, 11, 0)
@@ -375,7 +377,7 @@ void GenericChatForm::show(ContentLayout* contentLayout)
     QWidget::show();
     contentLayout->mainContent->layout()->addWidget(this);
 #else
-    contentLayout->mainContent->layout()->addWidget(this);
+    contentLayout_->mainContent->layout()->addWidget(this);
     QWidget::show();
 #endif
 }
@@ -575,10 +577,11 @@ bool GenericChatForm::eventFilter(QObject* object, QEvent* event)
         return false;
     }
 
-    if (object != this->fileButton && object != this->fileFlyout)
+    if (object != fileButton && object != fileFlyout)
         return false;
 
-    if (!qobject_cast<QWidget*>(object)->isEnabled())
+    auto wObject = qobject_cast<QWidget*>(object);
+    if (!wObject || !wObject->isEnabled())
         return false;
 
     switch (event->type()) {

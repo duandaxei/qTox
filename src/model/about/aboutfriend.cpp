@@ -24,21 +24,25 @@
 #include "src/persistence/profile.h"
 #include "src/persistence/ifriendsettings.h"
 
-AboutFriend::AboutFriend(const Friend* f, IFriendSettings* const s)
-    : f{f}
-    , settings{s}
+AboutFriend::AboutFriend(const Friend* f_, IFriendSettings* const settings_)
+    : f{f_}
+    , settings{settings_}
 {
-    s->connectTo_contactNoteChanged(this, [=](const ToxPk& pk, const QString& note) {
+    settings->connectTo_contactNoteChanged(this, [=](const ToxPk& pk, const QString& note) {
+        std::ignore = pk;
         emit noteChanged(note);
     });
-    s->connectTo_autoAcceptCallChanged(this,
+    settings->connectTo_autoAcceptCallChanged(this,
             [=](const ToxPk& pk, IFriendSettings::AutoAcceptCallFlags flag) {
+        std::ignore = pk;
         emit autoAcceptCallChanged(flag);
     });
-    s->connectTo_autoAcceptDirChanged(this, [=](const ToxPk& pk, const QString& dir) {
+    settings->connectTo_autoAcceptDirChanged(this, [=](const ToxPk& pk, const QString& dir) {
+        std::ignore = pk;
         emit autoAcceptDirChanged(dir);
     });
-    s->connectTo_autoGroupInviteChanged(this, [=](const ToxPk& pk, bool enable) {
+    settings->connectTo_autoGroupInviteChanged(this, [=](const ToxPk& pk, bool enable) {
+        std::ignore = pk;
         emit autoGroupInviteChanged(enable);
     });
 }

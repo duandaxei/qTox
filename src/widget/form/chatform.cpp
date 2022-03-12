@@ -69,10 +69,11 @@
  *
  * @brief stopNotification Tell others to stop notification of a call.
  */
-
-static constexpr int CHAT_WIDGET_MIN_HEIGHT = 50;
-static constexpr int SCREENSHOT_GRABBER_OPENING_DELAY = 500;
-static constexpr int TYPING_NOTIFICATION_DURATION = 3000;
+namespace {
+constexpr int CHAT_WIDGET_MIN_HEIGHT = 50;
+constexpr int SCREENSHOT_GRABBER_OPENING_DELAY = 500;
+constexpr int TYPING_NOTIFICATION_DURATION = 3000;
+} // namespace
 
 const QString ChatForm::ACTION_PREFIX = QStringLiteral("/me ");
 
@@ -105,8 +106,8 @@ QString secondsToDHMS(quint32 duration)
 }
 } // namespace
 
-ChatForm::ChatForm(Profile& profile, Friend* chatFriend, IChatLog& chatLog, IMessageDispatcher& messageDispatcher)
-    : GenericChatForm(profile.getCore(), chatFriend, chatLog, messageDispatcher)
+ChatForm::ChatForm(Profile& profile, Friend* chatFriend, IChatLog& chatLog_, IMessageDispatcher& messageDispatcher_)
+    : GenericChatForm(profile.getCore(), chatFriend, chatLog_, messageDispatcher_)
     , core{profile.getCore()}
     , f(chatFriend)
     , isTyping{false}
@@ -182,8 +183,8 @@ ChatForm::ChatForm(Profile& profile, Friend* chatFriend, IChatLog& chatLog, IMes
     connect(statusMessageLabel, &CroppingLabel::customContextMenuRequested, this,
             [&](const QPoint& pos) {
                 if (!statusMessageLabel->text().isEmpty()) {
-                    QWidget* sender = static_cast<QWidget*>(this->sender());
-                    statusMessageMenu.exec(sender->mapToGlobal(pos));
+                    QWidget* sender_ = static_cast<QWidget*>(sender());
+                    statusMessageMenu.exec(sender_->mapToGlobal(pos));
                 }
             });
 
@@ -319,7 +320,6 @@ void ChatForm::onAvInvite(uint32_t friendId, bool video)
     auto testedFlag = video ? Settings::AutoAcceptCall::Video : Settings::AutoAcceptCall::Audio;
     // AutoAcceptCall is set for this friend
     if (Settings::getInstance().getAutoAcceptCall(f->getPublicKey()).testFlag(testedFlag)) {
-        uint32_t friendId = f->getId();
         qDebug() << "automatic call answer";
         CoreAV* coreav = core.getAv();
         QMetaObject::invokeMethod(coreav, "answerCall", Qt::QueuedConnection,
@@ -457,6 +457,7 @@ void ChatForm::onFriendStatusChanged(const ToxPk& friendPk, Status::Status statu
 {
     // Disable call buttons if friend is offline
     assert(friendPk == f->getPublicKey());
+    std::ignore = friendPk;
 
     if (!Status::isOnline(f->getStatus())) {
         // Hide the "is typing" message when a friend goes offline
@@ -472,10 +473,10 @@ void ChatForm::onFriendStatusChanged(const ToxPk& friendPk, Status::Status statu
     }
 }
 
-void ChatForm::onFriendTypingChanged(quint32 friendId, bool isTyping)
+void ChatForm::onFriendTypingChanged(quint32 friendId, bool isTyping_)
 {
     if (friendId == f->getId()) {
-        setFriendTyping(isTyping);
+        setFriendTyping(isTyping_);
     }
 }
 
@@ -701,16 +702,16 @@ void ChatForm::onUpdateTime()
     callDuration->setText(secondsToDHMS(timeElapsed.elapsed() / 1000));
 }
 
-void ChatForm::setFriendTyping(bool isTyping)
+void ChatForm::setFriendTyping(bool isTyping_)
 {
-    chatWidget->setTypingNotificationVisible(isTyping);
+    chatWidget->setTypingNotificationVisible(isTyping_);
     QString name = f->getDisplayedName();
     chatWidget->setTypingNotificationName(name);
 }
 
-void ChatForm::show(ContentLayout* contentLayout)
+void ChatForm::show(ContentLayout* contentLayout_)
 {
-    GenericChatForm::show(contentLayout);
+    GenericChatForm::show(contentLayout_);
 }
 
 void ChatForm::reloadTheme()

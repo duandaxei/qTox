@@ -91,7 +91,7 @@ void Text::deselectText()
     update();
 }
 
-void Text::setWidth(qreal w)
+void Text::setWidth(float w)
 {
     width = w;
     dirty = true;
@@ -210,8 +210,8 @@ QRectF Text::boundingRect() const
 
 void Text::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
 {
-    Q_UNUSED(option)
-    Q_UNUSED(widget)
+    std::ignore = option;
+    std::ignore = widget;
 
     if (!doc)
         return;

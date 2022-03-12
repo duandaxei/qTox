@@ -55,7 +55,9 @@
 
 Q_DECLARE_OPAQUE_POINTER(ToxAV*)
 
-static Nexus* nexus{nullptr};
+namespace {
+Nexus* nexus{nullptr};
+} // namespace
 
 Nexus::Nexus(QObject* parent)
     : QObject(parent)
@@ -191,14 +193,14 @@ void Nexus::bootstrapWithProfile(Profile* p)
     }
 }
 
-void Nexus::setSettings(Settings* settings)
+void Nexus::setSettings(Settings* settings_)
 {
-    if (this->settings) {
-        QObject::disconnect(this, &Nexus::saveGlobal, this->settings, &Settings::saveGlobal);
+    if (settings) {
+        QObject::disconnect(this, &Nexus::saveGlobal, settings, &Settings::saveGlobal);
     }
-    this->settings = settings;
-    if (this->settings) {
-        QObject::connect(this, &Nexus::saveGlobal, this->settings, &Settings::saveGlobal);
+    settings = settings_;
+    if (settings) {
+        QObject::connect(this, &Nexus::saveGlobal, settings, &Settings::saveGlobal);
     }
 }
 
@@ -276,11 +278,11 @@ void Nexus::destroyInstance()
  */
 Core* Nexus::getCore()
 {
-    Nexus& nexus = getInstance();
-    if (!nexus.profile)
+    Nexus& nexus_ = getInstance();
+    if (!nexus_.profile)
         return nullptr;
 
-    return &nexus.profile->getCore();
+    return &nexus_.profile->getCore();
 }
 
 /**
@@ -328,9 +330,9 @@ void Nexus::setProfile(Profile* p)
     emit currentProfileChanged(p);
 }
 
-void Nexus::setParser(QCommandLineParser* parser)
+void Nexus::setParser(QCommandLineParser* parser_)
 {
-    this->parser = parser;
+    parser = parser_;
 }
 
 /**

@@ -70,15 +70,15 @@
  * deadlock.
  */
 
-CoreAV::CoreAV(std::unique_ptr<ToxAV, ToxAVDeleter> toxav, CompatibleRecursiveMutex& toxCoreLock,
-               IAudioSettings& _audioSettings, IGroupSettings& _groupSettings)
+CoreAV::CoreAV(std::unique_ptr<ToxAV, ToxAVDeleter> toxav_, CompatibleRecursiveMutex& toxCoreLock,
+               IAudioSettings& audioSettings_, IGroupSettings& groupSettings_)
     : audio{nullptr}
-    , toxav{std::move(toxav)}
+    , toxav{std::move(toxav_)}
     , coreavThread{new QThread{this}}
     , iterateTimer{new QTimer{this}}
     , coreLock{toxCoreLock}
-    , audioSettings{_audioSettings}
-    , groupSettings{_groupSettings}
+    , audioSettings{audioSettings_}
+    , groupSettings{groupSettings_}
 {
     assert(coreavThread);
     assert(iterateTimer);
@@ -86,7 +86,7 @@ CoreAV::CoreAV(std::unique_ptr<ToxAV, ToxAVDeleter> toxav, CompatibleRecursiveMu
     coreavThread->setObjectName("qTox CoreAV");
     moveToThread(coreavThread.get());
 
-    connectCallbacks(*this->toxav);
+    connectCallbacks();
 
     iterateTimer->setSingleShot(true);
 
@@ -95,14 +95,14 @@ CoreAV::CoreAV(std::unique_ptr<ToxAV, ToxAVDeleter> toxav, CompatibleRecursiveMu
     connect(coreavThread.get(), &QThread::started, this, &CoreAV::process);
 }
 
-void CoreAV::connectCallbacks(ToxAV& toxav)
+void CoreAV::connectCallbacks()
 {
-    toxav_callback_call(&toxav, CoreAV::callCallback, this);
-    toxav_callback_call_state(&toxav, CoreAV::stateCallback, this);
-    toxav_callback_audio_bit_rate(&toxav, CoreAV::audioBitrateCallback, this);
-    toxav_callback_video_bit_rate(&toxav, CoreAV::videoBitrateCallback, this);
-    toxav_callback_audio_receive_frame(&toxav, CoreAV::audioFrameCallback, this);
-    toxav_callback_video_receive_frame(&toxav, CoreAV::videoFrameCallback, this);
+    toxav_callback_call(toxav.get(), CoreAV::callCallback, this);
+    toxav_callback_call_state(toxav.get(), CoreAV::stateCallback, this);
+    toxav_callback_audio_bit_rate(toxav.get(), CoreAV::audioBitrateCallback, this);
+    toxav_callback_video_bit_rate(toxav.get(), CoreAV::videoBitrateCallback, this);
+    toxav_callback_audio_receive_frame(toxav.get(), CoreAV::audioFrameCallback, this);
+    toxav_callback_video_receive_frame(toxav.get(), CoreAV::videoFrameCallback, this);
 }
 
 /**
@@ -290,7 +290,7 @@ bool CoreAV::startCall(uint32_t friendNum, bool video)
     assert(audio != nullptr);
     ToxFriendCallPtr call = ToxFriendCallPtr(new ToxFriendCall(friendNum, video, *this, *audio));
     // Call object must be owned by this thread or there will be locking problems with Audio
-    call->moveToThread(this->thread());
+    call->moveToThread(thread());
     assert(call != nullptr);
     calls.emplace(friendNum, std::move(call));
     return true;
@@ -475,7 +475,7 @@ void CoreAV::groupCallCallback(void* tox, uint32_t group, uint32_t peer, const i
      * See https://github.com/TokTok/c-toxcore/issues/1364 for details.
      */
 
-    Q_UNUSED(tox)
+    std::ignore = tox;
     Core* c = static_cast<Core*>(core);
     CoreAV* cav = c->getAv();
 
@@ -553,7 +553,7 @@ void CoreAV::joinGroupCall(const Group& group)
 
     ToxGroupCallPtr groupcall = ToxGroupCallPtr(new ToxGroupCall{group, *this, *audio});
     // Call Objects must be owned by CoreAV or there will be locking problems with Audio
-    groupcall->moveToThread(this->thread());
+    groupcall->moveToThread(thread());
     assert(groupcall != nullptr);
     auto ret = groupCalls.emplace(group.getId(), std::move(groupcall));
     if (ret.second == false) {
@@ -751,7 +751,7 @@ void CoreAV::callCallback(ToxAV* toxav, uint32_t friendNum, bool audio, bool vid
 
 void CoreAV::stateCallback(ToxAV* toxav, uint32_t friendNum, uint32_t state, void* vSelf)
 {
-    Q_UNUSED(toxav)
+    std::ignore = toxav;
     CoreAV* self = static_cast<CoreAV*>(vSelf);
 
     // we must unlock this lock before emitting any signals
@@ -812,8 +812,8 @@ void CoreAV::bitrateCallback(ToxAV* toxav, uint32_t friendNum, uint32_t arate, u
                              void* vSelf)
 {
     CoreAV* self = static_cast<CoreAV*>(vSelf);
-    Q_UNUSED(self)
-    Q_UNUSED(toxav)
+    std::ignore = self;
+    std::ignore = toxav;
 
     qDebug() << "Recommended bitrate with" << friendNum << " is now " << arate << "/" << vrate
              << ", ignoring it";
@@ -823,8 +823,8 @@ void CoreAV::bitrateCallback(ToxAV* toxav, uint32_t friendNum, uint32_t arate, u
 void CoreAV::audioBitrateCallback(ToxAV* toxav, uint32_t friendNum, uint32_t rate, void* vSelf)
 {
     CoreAV* self = static_cast<CoreAV*>(vSelf);
-    Q_UNUSED(self)
-    Q_UNUSED(toxav)
+    std::ignore = self;
+    std::ignore = toxav;
 
     qDebug() << "Recommended audio bitrate with" << friendNum << " is now " << rate << ", ignoring it";
 }
@@ -833,8 +833,8 @@ void CoreAV::audioBitrateCallback(ToxAV* toxav, uint32_t friendNum, uint32_t rat
 void CoreAV::videoBitrateCallback(ToxAV* toxav, uint32_t friendNum, uint32_t rate, void* vSelf)
 {
     CoreAV* self = static_cast<CoreAV*>(vSelf);
-    Q_UNUSED(self)
-    Q_UNUSED(toxav)
+    std::ignore = self;
+    std::ignore = toxav;
 
     qDebug() << "Recommended video bitrate with" << friendNum << " is now " << rate << ", ignoring it";
 }

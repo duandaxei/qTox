@@ -46,10 +46,12 @@
 #include "src/widget/translator.h"
 #include "src/widget/widget.h"
 
-static const int minWidget = 220;
-static const int minHeight = 220;
-static const QSize minSize(minHeight, minWidget);
-static const QSize defaultSize(720, 400);
+namespace {
+const int minWidget = 220;
+const int minHeight = 220;
+const QSize minSize(minHeight, minWidget);
+const QSize defaultSize(720, 400);
+} // namespace
 
 ContentDialog::ContentDialog(const Core &core, QWidget* parent)
     : ActivateDialog(parent, Qt::Window)
@@ -356,8 +358,8 @@ void ContentDialog::onVideoShow(QSize size)
     }
 
     videoSurfaceSize = size;
-    QSize minSize = minimumSize();
-    setMinimumSize(minSize + videoSurfaceSize);
+    QSize minSize_ = minimumSize();
+    setMinimumSize(minSize_ + videoSurfaceSize);
 }
 
 void ContentDialog::onVideoHide()
@@ -367,8 +369,8 @@ void ContentDialog::onVideoHide()
         return;
     }
 
-    QSize minSize = minimumSize();
-    setMinimumSize(minSize - videoSurfaceSize);
+    QSize minSize_ = minimumSize();
+    setMinimumSize(minSize_ - videoSurfaceSize);
     videoSurfaceSize = QSize();
 }
 
@@ -642,6 +644,7 @@ void ContentDialog::setStatusMessage(const ToxPk& friendPk, const QString& messa
  */
 void ContentDialog::updateFriendWidget(const ToxPk& friendPk, QString alias)
 {
+    std::ignore = alias;
     Friend* f = FriendList::findFriend(friendPk);
     FriendWidget* friendWidget = qobject_cast<FriendWidget*>(contactWidgets[friendPk]);
 

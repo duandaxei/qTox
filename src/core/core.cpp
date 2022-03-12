@@ -499,17 +499,17 @@ QList<DhtServer> shuffleBootstrapNodes(QList<DhtServer> bootstrapNodes)
 
 } // namespace
 
-Core::Core(QThread* coreThread, IBootstrapListGenerator& _bootstrapListGenerator, const ICoreSettings& _settings)
+Core::Core(QThread* coreThread_, IBootstrapListGenerator& bootstrapListGenerator_, const ICoreSettings& settings_)
     : tox(nullptr)
     , toxTimer{new QTimer{this}}
-    , coreThread(coreThread)
-    , bootstrapListGenerator(_bootstrapListGenerator)
-    , settings(_settings)
+    , coreThread(coreThread_)
+    , bootstrapListGenerator(bootstrapListGenerator_)
+    , settings(settings_)
 {
     assert(toxTimer);
     toxTimer->setSingleShot(true);
     connect(toxTimer, &QTimer::timeout, this, &Core::process);
-    connect(coreThread, &QThread::finished, toxTimer, &QTimer::stop);
+    connect(coreThread_, &QThread::finished, toxTimer, &QTimer::stop);
 }
 
 Core::~Core()
@@ -926,7 +926,7 @@ void Core::onUserStatusChanged(Tox*, uint32_t friendId, Tox_User_Status userstat
 void Core::onConnectionStatusChanged(Tox*, uint32_t friendId, Tox_Connection status, void* vCore)
 {
     Core* core = static_cast<Core*>(vCore);
-    Status::Status friendStatus;
+    Status::Status friendStatus = Status::Status::Offline;
     switch (status)
     {
         case TOX_CONNECTION_NONE:
@@ -955,6 +955,7 @@ void Core::onConnectionStatusChanged(Tox*, uint32_t friendId, Tox_Connection sta
 void Core::onGroupInvite(Tox* tox, uint32_t friendId, Tox_Conference_Type type,
                          const uint8_t* cookie, size_t length, void* vCore)
 {
+    std::ignore = tox;
     Core* core = static_cast<Core*>(vCore);
     const QByteArray data(reinterpret_cast<const char*>(cookie), length);
     const GroupInvite inviteInfo(friendId, type, data);
@@ -1669,7 +1670,7 @@ uint32_t Core::joinGroupchat(const GroupInvite& inviteInfo)
     case TOX_CONFERENCE_TYPE_AV: {
         qDebug() << QString("Trying to join AV groupchat invite sent by friend %1").arg(friendId);
         groupNum = toxav_join_av_groupchat(tox.get(), friendId, cookie, cookieLength,
-                                           CoreAV::groupCallCallback, const_cast<Core*>(this));
+                                           CoreAV::groupCallCallback, this);
         break;
     }
     default:

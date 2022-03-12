@@ -70,13 +70,13 @@ bool handleActionPrefix(QString& content)
 }
 } // namespace
 
-ChatHistory::ChatHistory(Friend& f_, History* history_, const ICoreIdHandler& coreIdHandler,
+ChatHistory::ChatHistory(Friend& f_, History* history_, const ICoreIdHandler& coreIdHandler_,
                          const Settings& settings_, IMessageDispatcher& messageDispatcher)
     : f(f_)
     , history(history_)
     , settings(settings_)
-    , coreIdHandler(coreIdHandler)
-    , sessionChatLog(getInitialChatLogIdx(), coreIdHandler)
+    , coreIdHandler(coreIdHandler_)
+    , sessionChatLog(getInitialChatLogIdx(), coreIdHandler_)
 {
     connect(&messageDispatcher, &IMessageDispatcher::messageComplete, this,
             &ChatHistory::onMessageComplete);
@@ -382,7 +382,7 @@ void ChatHistory::loadHistoryIntoSessionChatLog(ChatLogIdx start) const
             // we hit IMessageDispatcher's signals which history listens for.
             // Items added to history have already been sent so we know they already
             // reflect what was sent/received.
-            auto processedMessage = Message{isAction, messageContent, message.timestamp};
+            auto processedMessage = Message{isAction, messageContent, message.timestamp, {}, {}};
 
             auto dispatchedMessageIt =
                 std::find_if(dispatchedMessageRowIdMap.begin(), dispatchedMessageRowIdMap.end(),

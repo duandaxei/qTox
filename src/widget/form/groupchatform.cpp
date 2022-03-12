@@ -52,7 +52,6 @@ const auto LABEL_PEER_TYPE_MUTED = QVariant(QStringLiteral("muted"));
 const auto LABEL_PEER_PLAYING_AUDIO = QVariant(QStringLiteral("true"));
 const auto LABEL_PEER_NOT_PLAYING_AUDIO = QVariant(QStringLiteral("false"));
 const auto PEER_LABEL_STYLE_SHEET_PATH = QStringLiteral("chatArea/chatHead.css");
-}
 
 /**
  * @brief Edit name for correct representation if it is needed
@@ -73,6 +72,7 @@ QString editName(const QString& name)
     result.append(QStringLiteral("…")); // \u2026 Unicode symbol, not just three separate dots
     return result;
 }
+}
 
 /**
  * @var QList<QLabel*> GroupChatForm::peerLabels
@@ -82,12 +82,12 @@ QString editName(const QString& name)
  * @brief Timeout = peer stopped sending audio.
  */
 
-GroupChatForm::GroupChatForm(Core& _core, Group* chatGroup, IChatLog& chatLog, IMessageDispatcher& messageDispatcher, IGroupSettings& _settings)
-    : GenericChatForm(_core, chatGroup, chatLog, messageDispatcher)
-    , core{_core}
+GroupChatForm::GroupChatForm(Core& core_, Group* chatGroup, IChatLog& chatLog_, IMessageDispatcher& messageDispatcher_, IGroupSettings& settings_)
+    : GenericChatForm(core_, chatGroup, chatLog_, messageDispatcher_)
+    , core{core_}
     , group(chatGroup)
     , inCall(false)
-    , settings(_settings)
+    , settings(settings_)
 {
     nusersLabel = new QLabel();
 
@@ -131,7 +131,7 @@ GroupChatForm::GroupChatForm(Core& _core, Group* chatGroup, IChatLog& chatLog, I
     connect(group, &Group::userLeft, this, &GroupChatForm::onUserLeft);
     connect(group, &Group::peerNameChanged, this, &GroupChatForm::onPeerNameChanged);
     connect(group, &Group::numPeersChanged, this, &GroupChatForm::updateUserCount);
-    settings.connectTo_blackListChanged(this, [this](QStringList const&) { this->updateUserNames(); });
+    settings.connectTo_blackListChanged(this, [this](QStringList const&) { updateUserNames(); });
 
     if (settings.getShowGroupJoinLeaveMessages()) {
         addSystemInfoMessage(QDateTime::currentDateTime(), SystemMessageType::selfJoinedGroup, {});
@@ -238,6 +238,7 @@ void GroupChatForm::updateUserNames()
 
 void GroupChatForm::onUserJoined(const ToxPk& user, const QString& name)
 {
+    std::ignore = user;
     if (settings.getShowGroupJoinLeaveMessages()) {
         addSystemInfoMessage(QDateTime::currentDateTime(), SystemMessageType::userJoinedGroup, {name});
     }
@@ -246,6 +247,7 @@ void GroupChatForm::onUserJoined(const ToxPk& user, const QString& name)
 
 void GroupChatForm::onUserLeft(const ToxPk& user, const QString& name)
 {
+    std::ignore = user;
     if (settings.getShowGroupJoinLeaveMessages()) {
         addSystemInfoMessage(QDateTime::currentDateTime(), SystemMessageType::userLeftGroup, {name});
     }
@@ -254,6 +256,7 @@ void GroupChatForm::onUserLeft(const ToxPk& user, const QString& name)
 
 void GroupChatForm::onPeerNameChanged(const ToxPk& peer, const QString& oldName, const QString& newName)
 {
+    std::ignore = peer;
     addSystemInfoMessage(QDateTime::currentDateTime(), SystemMessageType::peerNameChanged,
                          {oldName, newName});
     updateUserNames();

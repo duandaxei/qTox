@@ -31,7 +31,7 @@ option(SVGZ_ICON "Compress the SVG icon of qTox" ON)
 option(ASAN "Compile with AddressSanitizer" OFF)
 option(TSAN "Compile with ThreadSanitizer" OFF)
 option(DESKTOP_NOTIFICATIONS "Use snorenotify for desktop notifications" OFF)
-option(STRICT_OPTIONS "Enable strict compile options, used by CI" OFF)
+option(STRICT_OPTIONS "Error on compile warning, used by CI" OFF)
 
 # process generated files if cmake >= 3.10
 if(POLICY CMP0071)
@@ -93,33 +93,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 # Hardening flags (ASLR, warnings, etc)
 set(POSITION_INDEPENDENT_CODE True)
 
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG(-Wweak-vtables COMPILER_SUPPORTS_WARNING_WEAK_VTABLES)
-if(COMPILER_SUPPORTS_WARNING_WEAK_VTABLES)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wweak-vtables")
-endif()
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstrict-overflow")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstrict-aliasing")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wold-style-cast")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsign-compare")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wunknown-pragmas")
-
-# Extra-strict compile options that we don't want to subject all users to by default
-if (STRICT_OPTIONS)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
-endif()
-
-# avoid timestamps in binary for reproducible builds, not added until GCC 4.9
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG(-Wdate-time COMPILER_SUPPORTS_WDATE_TIME)
-if (COMPILER_SUPPORTS_WDATE_TIME)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wdate-time")
-endif()
-
 if (NOT WIN32 AND NOT HAIKU)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector-all")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstack-protector")
 endif()
 
 if (UNIX AND NOT APPLE)
@@ -128,7 +103,6 @@ if (UNIX AND NOT APPLE)
 endif()
 
 include(CheckAtomic)
-
 
 # Use ccache when available to speed up builds.
 if (USE_CCACHE)
@@ -646,6 +620,7 @@ link_libraries(coverage_config)
 add_subdirectory(util)
 add_subdirectory(audio)
 add_subdirectory(translations)
+add_subdirectory(cmake/warnings)
 
 add_library(${PROJECT_NAME}_static
   STATIC
@@ -659,6 +634,7 @@ target_link_libraries(${PROJECT_NAME}_static
 target_link_libraries(${PROJECT_NAME}_static util_library)
 target_link_libraries(${PROJECT_NAME}_static audio_library)
 target_link_libraries(${PROJECT_NAME}_static translations_library)
+target_link_libraries(${PROJECT_NAME}_static qtox::warnings)
 
 add_executable(${PROJECT_NAME}
   WIN32

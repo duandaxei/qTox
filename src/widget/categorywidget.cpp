@@ -38,8 +38,8 @@ void CategoryWidget::emitChatroomWidget(QLayout* layout, int index)
     }
 }
 
-CategoryWidget::CategoryWidget(bool compact, QWidget* parent)
-    : GenericChatItemWidget(compact, parent)
+CategoryWidget::CategoryWidget(bool compact_, QWidget* parent)
+    : GenericChatItemWidget(compact_, parent)
 {
     container = new QWidget(this);
     container->setObjectName("circleWidgetContainer");
@@ -251,7 +251,7 @@ void CategoryWidget::onCompactChanged(bool _compact)
     topLayout->setSpacing(0);
     topLayout->setMargin(0);
 
-    Q_UNUSED(_compact)
+    std::ignore = _compact;
     setCompact(true);
 
     nameLabel->minimizeMaximumWidth();

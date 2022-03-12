@@ -21,13 +21,13 @@
 
 #include <limits>
 
-ToxFileProgress::ToxFileProgress(uint64_t filesize, int samplePeriodMs)
-    : filesize(filesize)
-    , samplePeriodMs(samplePeriodMs)
+ToxFileProgress::ToxFileProgress(uint64_t filesize_, int samplePeriodMs_)
+    : filesize(filesize_)
+    , samplePeriodMs(samplePeriodMs_)
 {
-    if (samplePeriodMs < 0) {
+    if (samplePeriodMs_ < 0) {
         qWarning("Invalid sample rate, healing to 1000ms");
-        this->samplePeriodMs = 1000;
+        samplePeriodMs = 1000;
     }
 }
 
@@ -129,8 +129,8 @@ double ToxFileProgress::getTimeLeftSeconds() const
     }
 
     const auto speed = getSpeed();
-    if (speed == 0.0f) {
-        return std::numeric_limits<float>::infinity();
+    if (speed == 0.0) {
+        return std::numeric_limits<double>::infinity();
     }
 
     return double(filesize - samples[activeSample].bytesSent) / getSpeed();
