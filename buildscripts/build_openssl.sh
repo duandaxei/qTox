@@ -8,7 +8,7 @@ set -euo pipefail
 
 usage()
 {
-    echo "Download and build sodium for the windows cross compiling environment"
+    echo "Download and build openssl for the windows cross compiling environment"
     echo "Usage: $0 --arch {win64|win32}"
 }
 
@@ -23,22 +23,24 @@ while (( $# > 0 )); do
 done
 
 if [[ "$ARCH" == "win64" ]]; then
-    HOST="x86_64-w64-mingw32"
+    OPENSSL_ARCH="mingw64"
+    PREFIX="x86_64-w64-mingw32-"
 elif [[ "$ARCH" == "win32" ]]; then
-    HOST="i686-w64-mingw32"
+    OPENSSL_ARCH="mingw"
+    PREFIX="i686-w64-mingw32-"
 else
-    echo "Unexpected arch $ARCH"
+    echo "Invalid architecture"
     usage
     exit 1
 fi
 
-"$(dirname "$0")"/download/download_sodium.sh
+"$(dirname "$(realpath "$0")")/download/download_openssl.sh"
 
-LDFLAGS="-fstack-protector" \
-  ./configure --host="${HOST}" \
-              --prefix=/windows \
-              --enable-shared \
-              --disable-static
+./Configure --prefix=/windows/ \
+    --openssldir=/windows/ssl \
+    shared \
+    $OPENSSL_ARCH \
+    --cross-compile-prefix=${PREFIX}
 
 make -j $(nproc)
-make install
+make install_sw

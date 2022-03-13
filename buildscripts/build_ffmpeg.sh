@@ -4,6 +4,8 @@
 #     Copyright (c) 2017-2021 Maxim Biro <nurupo.contributions@gmail.com>
 #     Copyright (c) 2021 by The qTox Project Contributors
 
+set -euo pipefail
+
 usage()
 {
     echo "Download and build ffmpeg for the windows cross compiling environment"
@@ -26,7 +28,7 @@ if [ "$ARCH" != "win32" ] && [ "$ARCH" != "win64" ]; then
     exit 1
 fi
 
-"$(dirname "$0")"/download/download_ffmpeg.sh
+"$(dirname "$(realpath "$0")")/download/download_ffmpeg.sh"
 
 if [ "${ARCH}" == "win64" ]; then
     FFMPEG_ARCH="x86_64"

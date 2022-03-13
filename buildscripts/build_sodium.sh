@@ -8,7 +8,7 @@ set -euo pipefail
 
 usage()
 {
-    echo "Download and build qrencode for the windows cross compiling environment"
+    echo "Download and build sodium for the windows cross compiling environment"
     echo "Usage: $0 --arch {win64|win32}"
 }
 
@@ -32,15 +32,13 @@ else
     exit 1
 fi
 
-"$(dirname "$0")"/download/download_qrencode.sh
+"$(dirname "$(realpath "$0")")/download/download_sodium.sh"
 
-CFLAGS="-O2 -g0" ./configure --host="${HOST}" \
-                            --prefix=/windows \
-                            --enable-shared \
-                            --disable-static \
-                            --disable-sdltest \
-                            --without-tools \
-                            --without-debug
+LDFLAGS="-fstack-protector" \
+  ./configure --host="${HOST}" \
+              --prefix=/windows \
+              --enable-shared \
+              --disable-static
 
 make -j $(nproc)
 make install

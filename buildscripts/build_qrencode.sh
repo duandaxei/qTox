@@ -8,7 +8,7 @@ set -euo pipefail
 
 usage()
 {
-    echo "Download and build opus for the windows cross compiling environment"
+    echo "Download and build qrencode for the windows cross compiling environment"
     echo "Usage: $0 --arch {win64|win32}"
 }
 
@@ -32,15 +32,15 @@ else
     exit 1
 fi
 
-"$(dirname "$0")"/download/download_opus.sh
+"$(dirname "$(realpath "$0")")/download/download_qrencode.sh"
 
-LDFLAGS="-fstack-protector" CFLAGS="-O2 -g0" \
-    ./configure --host="${HOST}" \
-                             --prefix=/windows/ \
-                             --enable-shared \
-                             --disable-static \
-                             --disable-extra-programs \
-                             --disable-doc
+CFLAGS="-O2 -g0" ./configure --host="${HOST}" \
+                            --prefix=/windows \
+                            --enable-shared \
+                            --disable-static \
+                            --disable-sdltest \
+                            --without-tools \
+                            --without-debug
 
 make -j $(nproc)
 make install

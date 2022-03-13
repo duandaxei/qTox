@@ -8,7 +8,7 @@ set -euo pipefail
 
 usage()
 {
-    echo "Download and build openal for the windows cross compiling environment"
+    echo "Download and build libexif for the windows cross compiling environment"
     echo "Usage: $0 --arch {win64|win32}"
 }
 
@@ -28,25 +28,20 @@ if [ "$ARCH" != "win32" ] && [ "$ARCH" != "win64" ]; then
     exit 1
 fi
 
-"$(dirname "$0")"/download/download_openal.sh
-
-patch -p1 < "$(dirname "$0")"/patches/openal-cmake-3-11.patch
+"$(dirname "$(realpath "$0")")/download/download_libexif.sh"
 
 if [ "${ARCH}" == "win64" ]; then
-    MINGW_DIR="x86_64-w64-mingw32"
+    HOST="x86_64-w64-mingw32"
 else
-    MINGW_DIR="x86-w64-mingw32"
+    HOST="i686-w64-mingw32"
 fi
 
-export CFLAGS="-fPIC"
-cmake -DCMAKE_INSTALL_PREFIX=/windows/ \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DALSOFT_UTILS=OFF \
-    -DALSOFT_EXAMPLES=OFF \
-    -DCMAKE_TOOLCHAIN_FILE=/build/windows-toolchain.cmake \
-    -DDSOUND_INCLUDE_DIR="/usr/${MINGW_DIR}/include" \
-    -DDSOUND_LIBRARY="/usr/${MINGW_DIR}/lib/libdsound.a" \
-    .
+CFLAGS="-O2 -g0" ./configure --host="${HOST}" \
+                         --prefix=/windows/ \
+                         --enable-shared \
+                         --disable-static \
+                         --disable-docs \
+                         --disable-nls
 
 make -j $(nproc)
 make install
