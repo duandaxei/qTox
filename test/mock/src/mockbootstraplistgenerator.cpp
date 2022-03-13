@@ -1,5 +1,5 @@
 /*
-    Copyright © 2019 by The qTox Project Contributors
+    Copyright © 2022 by The qTox Project Contributors
 
     This file is part of qTox, a Qt-based graphical interface for Tox.
 
@@ -17,20 +17,6 @@
     along with qTox.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#pragma once
+#include "mock/mockbootstraplistgenerator.h"
 
-#include "src/core/contactid.h"
-#include <QByteArray>
-#include <cstdint>
-
-class ToxPk : public ContactId
-{
-public:
-    static constexpr int size = 32;
-    static constexpr int numHexChars = 64;
-    ToxPk();
-    explicit ToxPk(const QByteArray& rawId);
-    explicit ToxPk(const uint8_t* rawId);
-    explicit ToxPk(const QString& pk);
-    int getSize() const override;
-};
+MockBootstrapListGenerator::~MockBootstrapListGenerator() = default;

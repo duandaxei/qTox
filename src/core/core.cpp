@@ -42,6 +42,8 @@
 #include <QStringBuilder>
 #include <QTimer>
 
+#include <tox/tox.h>
+
 #include <algorithm>
 #include <cassert>
 #include <chrono>
@@ -507,6 +509,10 @@ Core::Core(QThread* coreThread_, IBootstrapListGenerator& bootstrapListGenerator
     , settings(settings_)
 {
     assert(toxTimer);
+    // need to migrate Settings and History if this changes
+    assert(ToxPk::size == tox_public_key_size());
+    assert(GroupId::size == tox_conference_id_size());
+    assert(ToxId::size == tox_address_size());
     toxTimer->setSingleShot(true);
     connect(toxTimer, &QTimer::timeout, this, &Core::process);
     connect(coreThread_, &QThread::finished, toxTimer, &QTimer::stop);
@@ -828,7 +834,7 @@ void Core::bootstrapDht()
     ASSERT_CORE_THREAD;
 
 
-    auto const shuffledBootstrapNodes = shuffleBootstrapNodes(bootstrapListGenerator.getBootstrapnodes());
+    auto const shuffledBootstrapNodes = shuffleBootstrapNodes(bootstrapListGenerator.getBootstrapNodes());
     if (shuffledBootstrapNodes.empty()) {
         qWarning() << "No bootstrap node list";
         return;
@@ -1317,7 +1323,7 @@ QByteArray Core::getSelfDhtId() const
 {
     QMutexLocker ml{&coreLoopLock};
     QByteArray dhtKey(TOX_PUBLIC_KEY_SIZE, 0x00);
-    tox_self_get_public_key(tox.get(), reinterpret_cast<uint8_t*>(dhtKey.data()));
+    tox_self_get_dht_id(tox.get(), reinterpret_cast<uint8_t*>(dhtKey.data()));
     return dhtKey;
 }
 
