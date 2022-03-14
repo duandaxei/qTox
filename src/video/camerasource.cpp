@@ -90,9 +90,7 @@ extern "C" {
  * @brief Remember how many times we subscribed for RAII
  */
 
-CameraSource* CameraSource::instance{nullptr};
-
-CameraSource::CameraSource()
+CameraSource::CameraSource(Settings& settings_)
     : deviceThread{new QThread}
     , deviceName{"none"}
     , device{nullptr}
@@ -105,6 +103,7 @@ CameraSource::CameraSource()
     , videoStreamIndex{-1}
     , isNone_{true}
     , subscriptions{0}
+    , settings{settings_}
 {
     qRegisterMetaType<VideoMode>("VideoMode");
     deviceThread->setObjectName("Device thread");
@@ -123,33 +122,17 @@ CameraSource::CameraSource()
 // clang-format on
 
 /**
- * @brief Returns the singleton instance.
- */
-CameraSource& CameraSource::getInstance()
-{
-    if (!instance)
-        instance = new CameraSource();
-    return *instance;
-}
-
-void CameraSource::destroyInstance()
-{
-    delete instance;
-    instance = nullptr;
-}
-
-/**
  * @brief Setup default device
  * @note If a device is already open, the source will seamlessly switch to the new device.
  */
 void CameraSource::setupDefault()
 {
-    QString deviceName_ = CameraDevice::getDefaultDeviceName();
+    QString deviceName_ = CameraDevice::getDefaultDeviceName(settings);
     bool isScreen = CameraDevice::isScreen(deviceName_);
-    VideoMode mode_ = VideoMode(Settings::getInstance().getScreenRegion());
+    VideoMode mode_ = VideoMode(settings.getScreenRegion());
     if (!isScreen) {
-        mode_ = VideoMode(Settings::getInstance().getCamVideoRes());
-        mode_.FPS = Settings::getInstance().getCamVideoFPS();
+        mode_ = VideoMode(settings.getCamVideoRes());
+        mode_.FPS = settings.getCamVideoFPS();
     }
 
     setupDevice(deviceName_, mode_);
@@ -278,7 +261,7 @@ void CameraSource::openDevice()
     }
 
     // We need to create a new CameraDevice
-    device = CameraDevice::open(deviceName, mode);
+    device = CameraDevice::open(settings, deviceName, mode);
 
     if (!device) {
         qWarning() << "Failed to open device!";

@@ -30,14 +30,15 @@
 
 class CameraDevice;
 struct AVCodecContext;
+class Settings;
 
 class CameraSource : public VideoSource
 {
     Q_OBJECT
 
 public:
-    static CameraSource& getInstance();
-    static void destroyInstance();
+    explicit CameraSource(Settings&);
+    ~CameraSource();
     void setupDefault();
     bool isNone() const;
 
@@ -53,8 +54,6 @@ signals:
     void openFailed();
 
 private:
-    CameraSource();
-    ~CameraSource();
     void stream();
 
 private slots:
@@ -78,6 +77,5 @@ private:
 
     std::atomic_bool isNone_;
     std::atomic_int subscriptions;
-
-    static CameraSource* instance;
+    Settings& settings;
 };
