@@ -242,8 +242,8 @@ set(${PROJECT_NAME}_SOURCES
   src/core/toxoptions.h
   src/core/toxpk.cpp
   src/core/toxpk.h
-  src/core/contactid.cpp
-  src/core/contactid.h
+  src/core/chatid.cpp
+  src/core/chatid.h
   src/core/toxstring.cpp
   src/core/toxstring.h
   src/friendlist.cpp
@@ -266,8 +266,8 @@ set(${PROJECT_NAME}_SOURCES
   src/model/chatroom/friendchatroom.h
   src/model/chatroom/groupchatroom.cpp
   src/model/chatroom/groupchatroom.h
-  src/model/contact.cpp
-  src/model/contact.h
+  src/model/chat.cpp
+  src/model/chat.h
   src/model/dialogs/idialogs.cpp
   src/model/dialogs/idialogs.h
   src/model/dialogs/idialogsmanager.h
@@ -552,17 +552,6 @@ endif()
 add_definitions(-DQT_MESSAGELOGCONTEXT=1)
 
 if(AVFOUNDATION_FOUND)
-  # used for AVFoundation compile time deprecation check
-  execute_process(
-    COMMAND sw_vers -productVersion
-    OUTPUT_VARIABLE MACOS_VER
-  )
-  string(REPLACE "." ";" VERSION_LIST ${MACOS_VER})
-  list(GET VERSION_LIST 0 MACOS_VERSION_MAJOR)
-  list(GET VERSION_LIST 1 MACOS_VERSION_MINOR)
-  add_definitions(-DMACOS_VERSION_MAJOR=${MACOS_VERSION_MAJOR})
-  add_definitions(-DMACOS_VERSION_MINOR=${MACOS_VERSION_MINOR})
-
   set(${PROJECT_NAME}_SOURCES ${${PROJECT_NAME}_SOURCES}
     src/platform/camera/avfoundation.mm
     src/platform/camera/avfoundation.h)
