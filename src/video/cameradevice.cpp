@@ -79,16 +79,14 @@ AvFindInputFormatRet iformat{nullptr};
 QHash<QString, CameraDevice*> CameraDevice::openDevices;
 QMutex CameraDevice::openDeviceLock, CameraDevice::iformatLock;
 
-CameraDevice::CameraDevice(const QString& devName_, AVFormatContext* context_,
-    Settings& settings_)
+CameraDevice::CameraDevice(const QString& devName_, AVFormatContext* context_)
     : devName{devName_}
     , context{context_}
     , refcount{1}
-    , settings{settings_}
 {
 }
 
-CameraDevice* CameraDevice::open(Settings& settings, QString devName, AVDictionary** options)
+CameraDevice* CameraDevice::open(QString devName, AVDictionary** options)
 {
     openDeviceLock.lock();
     AVFormatContext* fctx = nullptr;
@@ -133,7 +131,7 @@ CameraDevice* CameraDevice::open(Settings& settings, QString devName, AVDictiona
     fctx->max_analyze_duration = aduration;
 #endif
 
-    dev = new CameraDevice{devName, fctx, settings};
+    dev = new CameraDevice{devName, fctx};
     openDevices[devName] = dev;
 
 out:
@@ -153,7 +151,7 @@ out:
  * @param mode Mode of device to open.
  * @return CameraDevice if the device could be opened, nullptr otherwise.
  */
-CameraDevice* CameraDevice::open(Settings& settings, QString devName, VideoMode mode)
+CameraDevice* CameraDevice::open(QString devName, VideoMode mode)
 {
     if (!getDefaultInputFormat())
         return nullptr;
@@ -239,7 +237,7 @@ CameraDevice* CameraDevice::open(Settings& settings, QString devName, VideoMode 
         std::ignore = mode;
     }
 
-    CameraDevice* dev = open(settings, devName, &options);
+    CameraDevice* dev = open(devName, &options);
     if (options) {
         av_dict_free(&options);
     }

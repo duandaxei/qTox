@@ -36,7 +36,7 @@ class Settings;
 class CameraDevice
 {
 public:
-    static CameraDevice* open(Settings&, QString devName, VideoMode mode = VideoMode());
+    static CameraDevice* open(QString devName, VideoMode mode = VideoMode());
     void open();
     bool close();
 
@@ -51,8 +51,8 @@ public:
     static bool isScreen(const QString& devName);
 
 private:
-    CameraDevice(const QString& devName_, AVFormatContext* context_, Settings&);
-    static CameraDevice* open(Settings&, QString devName, AVDictionary** options);
+    CameraDevice(const QString& devName_, AVFormatContext* context_);
+    static CameraDevice* open(QString devName, AVDictionary** options);
     static bool getDefaultInputFormat();
     static QVector<QPair<QString, QString>> getRawDeviceListGeneric();
     static QVector<VideoMode> getScreenModes();
@@ -65,5 +65,4 @@ private:
     std::atomic_int refcount;
     static QHash<QString, CameraDevice*> openDevices;
     static QMutex openDeviceLock, iformatLock;
-    Settings& settings;
 };
