@@ -25,27 +25,30 @@
 #include <QStandardPaths>
 
 namespace {
-int state;
+QString getAutorunFile()
+{
+    return QDir::cleanPath(QStandardPaths::writableLocation(QStandardPaths::HomeLocation)
+            + QDir::separator() + "Library" + QDir::separator() + "LaunchAgents"
+            + QDir::separator() + "chat.tox.qtox.autorun.plist");
+}
 } // namespace
 
-bool Platform::setAutorun(const Settings&, bool on)
+bool Platform::setAutorun(const Settings& settings, bool on)
 {
-    QString qtoxPlist =
-        QDir::cleanPath(QStandardPaths::writableLocation(QStandardPaths::HomeLocation)
-                        + QDir::separator() + "Library" + QDir::separator() + "LaunchAgents"
-                        + QDir::separator() + "chat.tox.qtox.autorun.plist");
+    std::ignore = settings;
     QString qtoxDir =
         QDir::cleanPath(QCoreApplication::applicationDirPath() + QDir::separator() + "qtox");
-    QSettings autoRun(qtoxPlist, QSettings::NativeFormat);
+    QSettings autoRun(getAutorunFile(), QSettings::NativeFormat);
     autoRun.setValue("Label", "chat.tox.qtox.autorun");
     autoRun.setValue("Program", qtoxDir);
 
-    state = on;
-    autoRun.setValue("RunAtLoad", state);
+    autoRun.setValue("RunAtLoad", on);
     return true;
 }
 
-bool Platform::getAutorun(const Settings&)
+bool Platform::getAutorun(const Settings& settings)
 {
-    return state;
+    std::ignore = settings;
+    QSettings autoRun(getAutorunFile(), QSettings::NativeFormat);
+    return autoRun.value("RunAtLoad", false).toBool();
 }
