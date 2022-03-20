@@ -27,11 +27,16 @@
 #include "src/video/corevideosource.h"
 #include "src/video/videoframe.h"
 #include "util/compatiblerecursivemutex.h"
+#include "util/toxcoreerrorparser.h"
+
 #include <QCoreApplication>
 #include <QDebug>
 #include <QThread>
 #include <QTimer>
 #include <QtConcurrent/QtConcurrentRun>
+
+#include <tox/toxav.h>
+
 #include <cassert>
 
 /**
@@ -266,7 +271,9 @@ bool CoreAV::answerCall(uint32_t friendNum, bool video)
         return true;
     } else {
         qWarning() << "Failed to answer call with error" << err;
-        toxav_call_control(toxav.get(), friendNum, TOXAV_CALL_CONTROL_CANCEL, nullptr);
+        Toxav_Err_Call_Control controlErr;
+        toxav_call_control(toxav.get(), friendNum, TOXAV_CALL_CONTROL_CANCEL, &controlErr);
+        PARSE_ERR(controlErr);
         calls.erase(it);
         return false;
     }
@@ -285,9 +292,12 @@ bool CoreAV::startCall(uint32_t friendNum, bool video)
     }
 
     uint32_t videoBitrate = video ? VIDEO_DEFAULT_BITRATE : 0;
-    if (!toxav_call(toxav.get(), friendNum, audioSettings.getAudioBitrate(), videoBitrate,
-                    nullptr))
+    Toxav_Err_Call err;
+    toxav_call(toxav.get(), friendNum, audioSettings.getAudioBitrate(), videoBitrate,
+                    &err);
+    if (!PARSE_ERR(err)) {
         return false;
+    }
 
     // Audio backend must be set before making a call
     assert(audio != nullptr);
@@ -306,8 +316,9 @@ bool CoreAV::cancelCall(uint32_t friendNum)
     QMutexLocker coreLocker{&coreLock};
 
     qDebug() << QString("Cancelling call with %1").arg(friendNum);
-    if (!toxav_call_control(toxav.get(), friendNum, TOXAV_CALL_CONTROL_CANCEL, nullptr)) {
-        qWarning() << QString("Failed to cancel call with %1").arg(friendNum);
+    Toxav_Err_Call_Control err;
+    toxav_call_control(toxav.get(), friendNum, TOXAV_CALL_CONTROL_CANCEL, &err);
+    if (!PARSE_ERR(err)) {
         return false;
     }
 
@@ -396,7 +407,11 @@ void CoreAV::sendCallVideo(uint32_t callId, std::shared_ptr<VideoFrame> vframe)
     if (call.getNullVideoBitrate()) {
         qDebug() << "Restarting video stream to friend" << callId;
         QMutexLocker coreLocker{&coreLock};
-        toxav_video_set_bit_rate(toxav.get(), callId, VIDEO_DEFAULT_BITRATE, nullptr);
+        Toxav_Err_Bit_Rate_Set err;
+        toxav_video_set_bit_rate(toxav.get(), callId, VIDEO_DEFAULT_BITRATE, &err);
+        if (!PARSE_ERR(err)) {
+            return;
+        }
         call.setNullVideoBitrate(false);
     }
 
@@ -713,7 +728,11 @@ void CoreAV::sendNoVideo()
     qDebug() << "CoreAV: Signaling end of video sending";
     for (auto& kv : calls) {
         ToxFriendCall& call = *kv.second;
-        toxav_video_set_bit_rate(toxav.get(), kv.first, 0, nullptr);
+        Toxav_Err_Bit_Rate_Set err;
+        toxav_video_set_bit_rate(toxav.get(), kv.first, 0, &err);
+        if (!PARSE_ERR(err)) {
+            continue;
+        }
         call.setNullVideoBitrate(true);
     }
 }
@@ -735,7 +754,9 @@ void CoreAV::callCallback(ToxAV* toxav, uint32_t friendNum, bool audio, bool vid
     auto it = self->calls.emplace(friendNum, std::move(call));
     if (it.second == false) {
         qWarning() << QString("Rejecting call invite from %1, we're already in that call!").arg(friendNum);
-        toxav_call_control(toxav, friendNum, TOXAV_CALL_CONTROL_CANCEL, nullptr);
+        Toxav_Err_Call_Control err;
+        toxav_call_control(toxav, friendNum, TOXAV_CALL_CONTROL_CANCEL, &err);
+        PARSE_ERR(err);
         return;
     }
     qDebug() << QString("Received call invite from %1").arg(friendNum);

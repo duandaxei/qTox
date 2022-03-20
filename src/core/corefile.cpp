@@ -26,11 +26,16 @@
 #include "src/model/status.h"
 #include "src/model/toxclientstandards.h"
 #include "util/compatiblerecursivemutex.h"
+#include "util/toxcoreerrorparser.h"
+
 #include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QRegularExpression>
 #include <QThread>
+
+#include <tox/tox.h>
+
 #include <cassert>
 #include <memory>
 
@@ -109,26 +114,7 @@ void CoreFile::sendAvatarFile(uint32_t friendId, const QByteArray& data)
     Tox_Err_File_Send error;
     const uint32_t fileNum = tox_file_send(tox, friendId, TOX_FILE_KIND_AVATAR, filesize,
                                     file_id, file_name, nameLength, &error);
-
-    switch (error) {
-    case TOX_ERR_FILE_SEND_OK:
-        break;
-    case TOX_ERR_FILE_SEND_FRIEND_NOT_CONNECTED:
-        qCritical() << "Friend not connected";
-        return;
-    case TOX_ERR_FILE_SEND_FRIEND_NOT_FOUND:
-        qCritical() << "Friend not found";
-        return;
-    case TOX_ERR_FILE_SEND_NAME_TOO_LONG:
-        qCritical() << "Name too long";
-        return;
-    case TOX_ERR_FILE_SEND_NULL:
-        qCritical() << "Send null";
-        return;
-    case TOX_ERR_FILE_SEND_TOO_MANY:
-        qCritical() << "Too many outgoing transfers";
-        return;
-    default:
+    if (!PARSE_ERR(error)) {
         return;
     }
 
@@ -136,8 +122,12 @@ void CoreFile::sendAvatarFile(uint32_t friendId, const QByteArray& data)
     file.fileKind = TOX_FILE_KIND_AVATAR;
     file.avatarData = data;
     file.resumeFileId.resize(TOX_FILE_ID_LENGTH);
+    Tox_Err_File_Get fileGetErr;
     tox_file_get_file_id(tox, friendId, fileNum, reinterpret_cast<uint8_t*>(file.resumeFileId.data()),
-                         nullptr);
+                         &fileGetErr);
+    if (!PARSE_ERR(fileGetErr)) {
+        return;
+    }
     addFile(friendId, fileNum, file);
 }
 
@@ -150,8 +140,8 @@ void CoreFile::sendFile(uint32_t friendId, QString filename, QString filePath,
     Tox_Err_File_Send sendErr;
     uint32_t fileNum = tox_file_send(tox, friendId, TOX_FILE_KIND_DATA, filesize,
                                      nullptr, fileName.data(), fileName.size(), &sendErr);
-    if (sendErr != TOX_ERR_FILE_SEND_OK) {
-        qWarning() << "sendFile: Can't create the Tox file sender (" << sendErr << ")";
+
+    if (!PARSE_ERR(sendErr)) {
         emit fileSendFailed(friendId, fileName.getQString());
         return;
     }
@@ -159,8 +149,12 @@ void CoreFile::sendFile(uint32_t friendId, QString filename, QString filePath,
 
     ToxFile file{fileNum, friendId, fileName.getQString(), filePath, static_cast<uint64_t>(filesize), ToxFile::SENDING};
     file.resumeFileId.resize(TOX_FILE_ID_LENGTH);
+    Tox_Err_File_Get fileGetErr;
     tox_file_get_file_id(tox, friendId, fileNum, reinterpret_cast<uint8_t*>(file.resumeFileId.data()),
-                         nullptr);
+                         &fileGetErr);
+    if (!PARSE_ERR(fileGetErr)) {
+        return;
+    }
     if (!file.open(false)) {
         qWarning() << QString("sendFile: Can't open file, error: %1").arg(file.file->errorString());
     }
@@ -196,13 +190,15 @@ void CoreFile::pauseResumeFile(uint32_t friendId, uint32_t fileId)
         emit fileTransferAccepted(*file);
     }
 
+    Tox_Err_File_Control err;
     if (file->pauseStatus.localPaused()) {
         tox_file_control(tox, file->friendId, file->fileNum, TOX_FILE_CONTROL_PAUSE,
-                         nullptr);
+                         &err);
     } else {
         tox_file_control(tox, file->friendId, file->fileNum, TOX_FILE_CONTROL_RESUME,
-                         nullptr);
+                         &err);
     }
+    PARSE_ERR(err);
 }
 
 void CoreFile::cancelFileSend(uint32_t friendId, uint32_t fileId)
@@ -215,9 +211,13 @@ void CoreFile::cancelFileSend(uint32_t friendId, uint32_t fileId)
         return;
     }
 
+    Tox_Err_File_Control err;
+    tox_file_control(tox, file->friendId, file->fileNum, TOX_FILE_CONTROL_CANCEL, &err);
+    if (!PARSE_ERR(err)) {
+        return;
+    }
     file->status = ToxFile::CANCELED;
     emit fileTransferCancelled(*file);
-    tox_file_control(tox, file->friendId, file->fileNum, TOX_FILE_CONTROL_CANCEL, nullptr);
     removeFile(friendId, fileId);
 }
 
@@ -230,9 +230,13 @@ void CoreFile::cancelFileRecv(uint32_t friendId, uint32_t fileId)
         qWarning("cancelFileRecv: No such file in queue");
         return;
     }
+    Tox_Err_File_Control err;
+    tox_file_control(tox, file->friendId, file->fileNum, TOX_FILE_CONTROL_CANCEL, &err);
+    if (!PARSE_ERR(err)) {
+        return;
+    }
     file->status = ToxFile::CANCELED;
     emit fileTransferCancelled(*file);
-    tox_file_control(tox, file->friendId, file->fileNum, TOX_FILE_CONTROL_CANCEL, nullptr);
     removeFile(friendId, fileId);
 }
 
@@ -245,9 +249,13 @@ void CoreFile::rejectFileRecvRequest(uint32_t friendId, uint32_t fileId)
         qWarning("rejectFileRecvRequest: No such file in queue");
         return;
     }
+    Tox_Err_File_Control err;
+    tox_file_control(tox, file->friendId, file->fileNum, TOX_FILE_CONTROL_CANCEL, &err);
+    if (!PARSE_ERR(err)) {
+        return;
+    }
     file->status = ToxFile::CANCELED;
     emit fileTransferCancelled(*file);
-    tox_file_control(tox, file->friendId, file->fileNum, TOX_FILE_CONTROL_CANCEL, nullptr);
     removeFile(friendId, fileId);
 }
 
@@ -265,9 +273,13 @@ void CoreFile::acceptFileRecvRequest(uint32_t friendId, uint32_t fileId, QString
         qWarning() << "acceptFileRecvRequest: Unable to open file";
         return;
     }
+    Tox_Err_File_Control err;
+    tox_file_control(tox, file->friendId, file->fileNum, TOX_FILE_CONTROL_RESUME, &err);
+    if (!PARSE_ERR(err)) {
+        return;
+    }
     file->status = ToxFile::TRANSMITTING;
     emit fileTransferAccepted(*file);
-    tox_file_control(tox, file->friendId, file->fileNum, TOX_FILE_CONTROL_RESUME, nullptr);
 }
 
 ToxFile* CoreFile::findFile(uint32_t friendId, uint32_t fileId)
@@ -327,7 +339,9 @@ void CoreFile::onFileReceiveCallback(Tox* tox, uint32_t friendId, uint32_t fileI
         if (!filesize) {
             qDebug() << QString("Received empty avatar request %1:%2").arg(friendId).arg(fileId);
             // Avatars of size 0 means explicitely no avatar
-            tox_file_control(tox, friendId, fileId, TOX_FILE_CONTROL_CANCEL, nullptr);
+            Tox_Err_File_Control err;
+            tox_file_control(tox, friendId, fileId, TOX_FILE_CONTROL_CANCEL, &err);
+            PARSE_ERR(err);
             emit core->friendAvatarRemoved(core->getFriendPublicKey(friendId));
             return;
         }
@@ -335,13 +349,19 @@ void CoreFile::onFileReceiveCallback(Tox* tox, uint32_t friendId, uint32_t fileI
             qWarning() <<
                 QString("Received avatar request from %1 with size %2.").arg(friendId).arg(filesize) +
                 QString(" The max size allowed for avatars is %3. Cancelling transfer.").arg(ToxClientStandards::MaxAvatarSize);
-            tox_file_control(tox, friendId, fileId, TOX_FILE_CONTROL_CANCEL, nullptr);
+            Tox_Err_File_Control err;
+            tox_file_control(tox, friendId, fileId, TOX_FILE_CONTROL_CANCEL, &err);
+            PARSE_ERR(err);
             return;
         }
         static_assert(TOX_HASH_LENGTH <= TOX_FILE_ID_LENGTH,
                         "TOX_HASH_LENGTH > TOX_FILE_ID_LENGTH!");
         uint8_t avatarHash[TOX_FILE_ID_LENGTH];
-        tox_file_get_file_id(tox, friendId, fileId, avatarHash, nullptr);
+        Tox_Err_File_Get fileGetErr;
+        tox_file_get_file_id(tox, friendId, fileId, avatarHash, &fileGetErr);
+        if (!PARSE_ERR(fileGetErr)) {
+            return;
+        }
         QByteArray avatarBytes{static_cast<const char*>(static_cast<const void*>(avatarHash)),
                                 TOX_HASH_LENGTH};
         emit core->fileAvatarOfferReceived(friendId, fileId, avatarBytes, filesize);
@@ -362,8 +382,12 @@ void CoreFile::onFileReceiveCallback(Tox* tox, uint32_t friendId, uint32_t fileI
     ToxFile file{fileId, friendId, filename.getBytes(), "", filesize, ToxFile::RECEIVING};
     file.fileKind = kind;
     file.resumeFileId.resize(TOX_FILE_ID_LENGTH);
+    Tox_Err_File_Get fileGetErr;
     tox_file_get_file_id(tox, friendId, fileId, reinterpret_cast<uint8_t*>(file.resumeFileId.data()),
-                         nullptr);
+                         &fileGetErr);
+    if (!PARSE_ERR(fileGetErr)) {
+        return;
+    }
     coreFile->addFile(friendId, fileId, file);
     if (kind != TOX_FILE_KIND_AVATAR) {
         emit coreFile->fileReceiveRequested(file);
@@ -378,21 +402,31 @@ void CoreFile::handleAvatarOffer(uint32_t friendId, uint32_t fileId, bool accept
         qDebug() << QString("Received avatar request %1:%2. Rejected since it is in cache.")
                         .arg(friendId)
                         .arg(fileId);
-        tox_file_control(tox, friendId, fileId, TOX_FILE_CONTROL_CANCEL, nullptr);
+        Tox_Err_File_Control err;
+        tox_file_control(tox, friendId, fileId, TOX_FILE_CONTROL_CANCEL, &err);
+        PARSE_ERR(err);
         return;
     }
 
+    Tox_Err_File_Control err;
+    tox_file_control(tox, friendId, fileId, TOX_FILE_CONTROL_RESUME, &err);
+    if (!PARSE_ERR(err)) {
+        return;
+    }
     // It's an avatar and we don't have it, autoaccept the transfer
     qDebug() << QString("Received avatar request %1:%2. Accepted.")
                     .arg(friendId)
                     .arg(fileId);
-    tox_file_control(tox, friendId, fileId, TOX_FILE_CONTROL_RESUME, nullptr);
 
     ToxFile file{fileId, friendId, "<avatar>", "", filesize, ToxFile::RECEIVING};
     file.fileKind = TOX_FILE_KIND_AVATAR;
     file.resumeFileId.resize(TOX_FILE_ID_LENGTH);
+    Tox_Err_File_Get getErr;
     tox_file_get_file_id(tox, friendId, fileId, reinterpret_cast<uint8_t*>(file.resumeFileId.data()),
-                         nullptr);
+                         &getErr);
+    if (!PARSE_ERR(getErr)) {
+        return;
+    }
     addFile(friendId, fileId, file);
 }
 
@@ -468,7 +502,9 @@ void CoreFile::onFileDataCallback(Tox* tox, uint32_t friendId, uint32_t fileId, 
             qWarning("onFileDataCallback: Failed to read from file");
             file->status = ToxFile::CANCELED;
             emit coreFile->fileTransferCancelled(*file);
-            tox_file_send_chunk(tox, friendId, fileId, pos, nullptr, 0, nullptr);
+            Tox_Err_File_Send_Chunk err;
+            tox_file_send_chunk(tox, friendId, fileId, pos, nullptr, 0, &err);
+            PARSE_ERR(err);
             coreFile->removeFile(friendId, fileId);
             return;
         }
@@ -476,8 +512,9 @@ void CoreFile::onFileDataCallback(Tox* tox, uint32_t friendId, uint32_t fileId, 
         file->hashGenerator->addData(reinterpret_cast<const char*>(data.get()), length);
     }
 
-    if (!tox_file_send_chunk(tox, friendId, fileId, pos, data.get(), nread, nullptr)) {
-        qWarning("onFileDataCallback: Failed to send data chunk");
+    Tox_Err_File_Send_Chunk err;
+    tox_file_send_chunk(tox, friendId, fileId, pos, data.get(), nread, &err);
+    if (!PARSE_ERR(err)) {
         return;
     }
     if (file->fileKind != TOX_FILE_KIND_AVATAR) {
@@ -493,7 +530,9 @@ void CoreFile::onFileRecvChunkCallback(Tox* tox, uint32_t friendId, uint32_t fil
     ToxFile* file = coreFile->findFile(friendId, fileId);
     if (!file) {
         qWarning("onFileRecvChunkCallback: No such file in queue");
-        tox_file_control(tox, friendId, fileId, TOX_FILE_CONTROL_CANCEL, nullptr);
+        Tox_Err_File_Control err;
+        tox_file_control(tox, friendId, fileId, TOX_FILE_CONTROL_CANCEL, &err);
+        PARSE_ERR(err);
         return;
     }
 
@@ -503,7 +542,9 @@ void CoreFile::onFileRecvChunkCallback(Tox* tox, uint32_t friendId, uint32_t fil
             file->status = ToxFile::CANCELED;
             emit coreFile->fileTransferCancelled(*file);
         }
-        tox_file_control(tox, friendId, fileId, TOX_FILE_CONTROL_CANCEL, nullptr);
+        Tox_Err_File_Control err;
+        tox_file_control(tox, friendId, fileId, TOX_FILE_CONTROL_CANCEL, &err);
+        PARSE_ERR(err);
         coreFile->removeFile(friendId, fileId);
         return;
     }

@@ -1,5 +1,5 @@
 /*
-    Copyright © 2015-2019 by The qTox Project Contributors
+    Copyright © 2022 by The qTox Project Contributors
 
     This file is part of qTox, a Qt-based graphical interface for Tox.
 
@@ -17,26 +17,24 @@
     along with qTox.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "timestamp.h"
+#pragma once
 
-Timestamp::Timestamp(const QDateTime& time_, const QString& format,
-    const QFont& font, DocumentCache& documentCache_, Settings& settings_,
-    Style& style_)
-    : Text(documentCache_, settings_, style_, time_.toString(format), font, false,
-        time_.toString(format))
-{
-    time = time_;
-}
+#include <memory>
 
-QDateTime Timestamp::getTime()
+class RawDatabase;
+namespace DbUpgrader
 {
-    return time;
-}
+    bool dbSchemaUpgrade(std::shared_ptr<RawDatabase>& db);
 
-QSizeF Timestamp::idealSize()
-{
-    if (doc) {
-        return QSizeF(qMin(doc->idealWidth(), width), doc->size().height());
-    }
-    return size;
+    bool createCurrentSchema(RawDatabase& db);
+    bool isNewDb(std::shared_ptr<RawDatabase>& db, bool& success);
+    bool dbSchema0to1(RawDatabase& db);
+    bool dbSchema1to2(RawDatabase& db);
+    bool dbSchema2to3(RawDatabase& db);
+    bool dbSchema3to4(RawDatabase& db);
+    bool dbSchema4to5(RawDatabase& db);
+    bool dbSchema5to6(RawDatabase& db);
+    bool dbSchema6to7(RawDatabase& db);
+    bool dbSchema7to8(RawDatabase& db);
+    bool dbSchema8to9(RawDatabase& db);
 }
