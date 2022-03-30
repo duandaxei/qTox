@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#    Copyright © 2016-2021 by The qTox Project Contributors
+#    Copyright © 2022 by The qTox Project Contributors
 #
 #    This program is libre software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -15,38 +15,30 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Fail out on error
-set -eu -o pipefail
+set -euo pipefail
 
-readonly BIN_NAME="qTox.dmg"
+readonly SCRIPT_DIR="$(dirname "$(realpath "$0")")"
 
-build_qtox() {
-    cmake -DUPDATE_CHECK=ON \
-        -DSPELL_CHECK=OFF \
-        -DSTRICT_OPTIONS=ON \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_PREFIX_PATH="$(brew --prefix qt@5)" .
-    make -j$(sysctl -n hw.ncpu)
-    export CTEST_OUTPUT_ON_FAILURE=1
-    ctest -j$(sysctl -n hw.ncpu)
-    make install
+install_deps()
+{
+    for dep in $@; do
+        mkdir -p _build-dep
+        pushd _build-dep
+        "${SCRIPT_DIR}/../buildscripts/${dep}" --arch macos
+        popd
+        rm -rf _build-dep
+    done
 }
 
-check() {
-    if [[ ! -s "$BIN_NAME" ]]
-    then
-        echo "There's no $BIN_NAME!"
-        exit 1
-    fi
-}
-
-make_hash() {
-    shasum -a 256 "$BIN_NAME" > "$BIN_NAME".sha256
-}
-
-main() {
-    build_qtox
-    check
-    make_hash
-}
-main
+install_deps \
+    build_openssl.sh \
+    build_qrencode.sh \
+    build_libexif.sh \
+    build_sodium.sh \
+    build_openal.sh \
+    build_vpx.sh \
+    build_opus.sh \
+    build_ffmpeg.sh \
+    build_msgpack_c.sh \
+    build_toxcore.sh \
+    build_sqlcipher.sh \
