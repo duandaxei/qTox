@@ -63,7 +63,6 @@ public:
     {
         return 0;
     }
-    qreal outputVolume() const;
     void setOutputVolume(qreal volume);
 
     qreal minInputGain() const;
@@ -128,7 +127,7 @@ private:
     void cleanupBuffers(uint sourceId);
     void cleanupSound();
 
-    float getVolume();
+    qreal getVolume();
 
 protected:
     IAudioSettings& settings;

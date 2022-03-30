@@ -22,7 +22,6 @@
 
 #include "src/model/status.h"
 
-#include "src/widget/gui.h"
 #include "src/widget/maskablepixmapwidget.h"
 #include "src/widget/style.h"
 #include "src/widget/tool/callconfirmwidget.h"
@@ -170,7 +169,7 @@ ChatFormHeader::ChatFormHeader(Settings& settings_, Style& style_, QWidget* pare
     updateButtonsView();
     Translator::registerHandler(std::bind(&ChatFormHeader::retranslateUi, this), this);
 
-    connect(&GUI::getInstance(), &GUI::themeReload, this, &ChatFormHeader::reloadTheme);
+    connect(&style, &Style::themeReload, this, &ChatFormHeader::reloadTheme);
 }
 
 ChatFormHeader::~ChatFormHeader() = default;

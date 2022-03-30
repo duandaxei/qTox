@@ -1707,6 +1707,19 @@ Please make sure to enter the same password twice.</source>
     </message>
 </context>
 <context>
+    <name>MessageBoxManager</name>
+    <message>
+        <source>Executable file</source>
+        <comment>popup title</comment>
+        <translation type="unfinished">فایل اجرایی</translation>
+    </message>
+    <message>
+        <source>You have asked qTox to open an executable file. Executable files can potentially damage your computer. Are you sure want to open this file?</source>
+        <comment>popup text</comment>
+        <translation type="unfinished">شما از qTox خواسته اید که یک فایل اجرایی را باز کند. فایل های اجرایی میتوانند به شکل بالقوه صدمه جدی به سیستم شما بزنند. آیا اطمینان دارید که میخواهید این فایل را اجرا کنید؟</translation>
+    </message>
+</context>
+<context>
     <name>NetCamView</name>
     <message>
         <source>Tox video</source>
@@ -2643,6 +2656,10 @@ This ID includes the NoSpam code (in blue), and the checksum (in gray).</source>
         <source>Unable to upgrade settings from version %1 to version %2. Cannot start qTox.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Failed to load global settings</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ToxURIDialog</name>
@@ -2896,16 +2913,6 @@ This ID includes the NoSpam code (in blue), and the checksum (in gray).</source>
     <message>
         <source>Contacts</source>
         <translation>مخاطبین</translation>
-    </message>
-    <message>
-        <source>Executable file</source>
-        <comment>popup title</comment>
-        <translation>فایل اجرایی</translation>
-    </message>
-    <message>
-        <source>You have asked qTox to open an executable file. Executable files can potentially damage your computer. Are you sure want to open this file?</source>
-        <comment>popup text</comment>
-        <translation>شما از qTox خواسته اید که یک فایل اجرایی را باز کند. فایل های اجرایی میتوانند به شکل بالقوه صدمه جدی به سیستم شما بزنند. آیا اطمینان دارید که میخواهید این فایل را اجرا کنید؟</translation>
     </message>
     <message>
         <source>Status</source>

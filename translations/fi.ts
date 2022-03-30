@@ -1711,6 +1711,19 @@ Varmista, että syötät saman salasanan kahdesti.</translation>
     </message>
 </context>
 <context>
+    <name>MessageBoxManager</name>
+    <message>
+        <source>Executable file</source>
+        <comment>popup title</comment>
+        <translation type="unfinished">Suoritettava tiedosto</translation>
+    </message>
+    <message>
+        <source>You have asked qTox to open an executable file. Executable files can potentially damage your computer. Are you sure want to open this file?</source>
+        <comment>popup text</comment>
+        <translation type="unfinished">Olet pyytänyt qToxia avaamaan tiedoston. Tämän tyyppiset tiedostot voivat mahdollisesti vahingoittaa konettasi. Oletko varma, että haluat avata tämän tiedoston?</translation>
+    </message>
+</context>
+<context>
     <name>NetCamView</name>
     <message>
         <source>Tox video</source>
@@ -2651,6 +2664,10 @@ Tämä ID sisältää spammin estävän koodin(joka on sinisellä), ja tarkistus
         <source>Unable to upgrade settings from version %1 to version %2. Cannot start qTox.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Failed to load global settings</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ToxURIDialog</name>
@@ -2891,16 +2908,6 @@ Tämä ID sisältää spammin estävän koodin(joka on sinisellä), ja tarkistus
     <message>
         <source>Status</source>
         <translation>Tila</translation>
-    </message>
-    <message>
-        <source>Executable file</source>
-        <comment>popup title</comment>
-        <translation>Suoritettava tiedosto</translation>
-    </message>
-    <message>
-        <source>You have asked qTox to open an executable file. Executable files can potentially damage your computer. Are you sure want to open this file?</source>
-        <comment>popup text</comment>
-        <translation>Olet pyytänyt qToxia avaamaan tiedoston. Tämän tyyppiset tiedostot voivat mahdollisesti vahingoittaa konettasi. Oletko varma, että haluat avata tämän tiedoston?</translation>
     </message>
     <message>
         <source>Add new circle...</source>

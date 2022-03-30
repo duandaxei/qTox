@@ -19,23 +19,19 @@
 
 #pragma once
 
-#include <memory>
+class QString;
+class QFileInfo;
 
-class RawDatabase;
-namespace DbUpgrader
+class IMessageBoxManager
 {
-    bool dbSchemaUpgrade(std::shared_ptr<RawDatabase>& db);
-
-    bool createCurrentSchema(RawDatabase& db);
-    bool isNewDb(std::shared_ptr<RawDatabase>& db, bool& success);
-    bool dbSchema0to1(RawDatabase& db);
-    bool dbSchema1to2(RawDatabase& db);
-    bool dbSchema2to3(RawDatabase& db);
-    bool dbSchema3to4(RawDatabase& db);
-    bool dbSchema4to5(RawDatabase& db);
-    bool dbSchema5to6(RawDatabase& db);
-    bool dbSchema6to7(RawDatabase& db);
-    bool dbSchema7to8(RawDatabase& db);
-    bool dbSchema8to9(RawDatabase& db);
-    bool dbSchema9to10(RawDatabase& db);
-}
+public:
+    virtual ~IMessageBoxManager();
+    virtual void showInfo(const QString& title, const QString& msg) = 0;
+    virtual void showWarning(const QString& title, const QString& msg) = 0;
+    virtual void showError(const QString& title, const QString& msg) = 0;
+    virtual bool askQuestion(const QString& title, const QString& msg, bool defaultAns = false,
+            bool warning = true, bool yesno = true) = 0;
+    virtual bool askQuestion(const QString& title, const QString& msg, const QString& button1,
+            const QString& button2, bool defaultAns = false, bool warning = true) = 0;
+    virtual void confirmExecutableOpen(const QFileInfo& file) = 0;
+};

@@ -19,12 +19,55 @@
 
 #include "src/persistence/db/rawdatabase.h"
 #include "src/persistence/dbupgrader.h"
+#include "src/core/toxfile.h"
 
-#include <QtTest/QtTest>
 #include <QString>
+#include <QTemporaryFile>
+#include <QtTest/QtTest>
 
 #include <algorithm>
 #include <memory>
+
+namespace {
+bool insertFileId(RawDatabase& db, int row, bool valid)
+{
+    QByteArray validResumeId(32, 1);
+    QByteArray invalidResumeId;
+
+    QByteArray resumeId;
+    if (valid) {
+        resumeId = validResumeId;
+    } else {
+        resumeId = invalidResumeId;
+    }
+
+    QVector<RawDatabase::Query> upgradeQueries;
+    upgradeQueries += RawDatabase::Query(
+        QString("INSERT INTO file_transfers "
+        "    (id, message_type, sender_alias, "
+        "    file_restart_id, file_name, file_path, "
+        "    file_hash, file_size, direction, file_state) "
+        "VALUES ( "
+        "    %1, "
+        "    'F', "
+        "    1, "
+        "    ?, "
+        "    %2, "
+        "    %3, "
+        "    %4, "
+        "    1, "
+        "    1, "
+        "    %5 "
+        ");")
+        .arg(row)
+        .arg("\"fooname\"")
+        .arg("\"foo/path\"")
+        .arg("\"foohash\"")
+        .arg(ToxFile::CANCELED)
+        , {resumeId});
+    return db.execNow(upgradeQueries);
+}
+} // namespace
 
 struct SqliteMasterEntry {
     QString name;
@@ -42,7 +85,8 @@ class TestDbSchema : public QObject
 {
     Q_OBJECT
 private slots:
-    void initTestCase();
+    void init();
+    void cleanup();
     void testCreation();
     void testIsNewDb();
     void test0to1();
@@ -54,19 +98,19 @@ private slots:
     void test6to7();
     // test7to8 omitted, version only upgrade, versions are not verified in this
     // test8to9 omitted, data corruption correction upgrade with no schema change
+    void test9to10();
     // test suite
-    void cleanupTestCase() const;
 
 private:
-    bool initSucess{false};
     void createSchemaAtVersion(std::shared_ptr<RawDatabase> db, const std::vector<SqliteMasterEntry>& schema);
     void verifyDb(std::shared_ptr<RawDatabase> db, const std::vector<SqliteMasterEntry>& expectedSql);
+    std::unique_ptr<QTemporaryFile> testDatabaseFile;
 };
 
 const QString testFileList[] = {"testCreation.db", "testIsNewDbTrue.db", "testIsNewDbFalse.db",
                                 "test0to1.db",     "test1to2.db",        "test2to3.db",
                                 "test3to4.db",     "test4to5.db",        "test5to6.db",
-                                "test6to7.db"};
+                                "test6to7.db",     "test9to10.db"};
 
 // db schemas can be select with "SELECT name, sql FROM sqlite_master;" on the database.
 
@@ -162,25 +206,8 @@ const std::vector<SqliteMasterEntry> schema7{
      "FOREIGN KEY (id, message_type) REFERENCES history(id, message_type))"},
     {"chat_id_idx", "CREATE INDEX chat_id_idx on history (chat_id)"}};
 
-
-void TestDbSchema::initTestCase()
-{
-    for (const auto& path : testFileList) {
-        QVERIFY(!QFileInfo{path}.exists());
-    }
-    initSucess = true;
-}
-
-void TestDbSchema::cleanupTestCase() const
-{
-    if (!initSucess) {
-        qWarning() << "init failed, skipping cleanup to avoid loss of data";
-        return;
-    }
-    for (const auto& path : testFileList) {
-        QFile::remove(path);
-    }
-}
+const std::vector<SqliteMasterEntry> schema9 = schema7;
+const std::vector<SqliteMasterEntry> schema10 = schema9;
 
 void TestDbSchema::verifyDb(std::shared_ptr<RawDatabase> db, const std::vector<SqliteMasterEntry>& expectedSql)
 {
@@ -212,22 +239,36 @@ void TestDbSchema::createSchemaAtVersion(std::shared_ptr<RawDatabase> db, const 
     QVERIFY(db->execNow(queries));
 }
 
+void TestDbSchema::init()
+{
+    testDatabaseFile = std::unique_ptr<QTemporaryFile>(new QTemporaryFile());
+    // fileName is only defined once the file is opened. Since RawDatabase
+    // will be openening the file itself not using QFile, open and close it now.
+    QVERIFY(testDatabaseFile->open());
+    testDatabaseFile->close();
+}
+
+void TestDbSchema::cleanup()
+{
+    testDatabaseFile.reset();
+}
+
 void TestDbSchema::testCreation()
 {
     QVector<RawDatabase::Query> queries;
-    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{"testCreation.db", {}, {}}};
+    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{testDatabaseFile->fileName(), {}, {}}};
     QVERIFY(DbUpgrader::createCurrentSchema(*db));
     verifyDb(db, schema7);
 }
 
 void TestDbSchema::testIsNewDb()
 {
-    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{"testIsNewDbTrue.db", {}, {}}};
+    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{testDatabaseFile->fileName(), {}, {}}};
     bool success = false;
     bool newDb = DbUpgrader::isNewDb(db, success);
     QVERIFY(success);
     QVERIFY(newDb == true);
-    db = std::shared_ptr<RawDatabase>{new RawDatabase{"testIsNewDbFalse.db", {}, {}}};
+    db = std::shared_ptr<RawDatabase>{new RawDatabase{testDatabaseFile->fileName(), {}, {}}};
     createSchemaAtVersion(db, schema0);
     newDb = DbUpgrader::isNewDb(db, success);
     QVERIFY(success);
@@ -236,7 +277,7 @@ void TestDbSchema::testIsNewDb()
 
 void TestDbSchema::test0to1()
 {
-    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{"test0to1.db", {}, {}}};
+    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{testDatabaseFile->fileName(), {}, {}}};
     createSchemaAtVersion(db, schema0);
     QVERIFY(DbUpgrader::dbSchema0to1(*db));
     verifyDb(db, schema1);
@@ -257,7 +298,7 @@ void TestDbSchema::test1to2()
     https://github.com/qTox/qTox/issues/5776
     */
 
-    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{"test1to2.db", {}, {}}};
+    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{testDatabaseFile->fileName(), {}, {}}};
     createSchemaAtVersion(db, schema1);
 
     const QString myPk = "AC18841E56CCDEE16E93E10E6AB2765BE54277D67F1372921B5B418A6B330D3D";
@@ -339,7 +380,7 @@ void TestDbSchema::test1to2()
 
 void TestDbSchema::test2to3()
 {
-    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{"test2to3.db", {}, {}}};
+    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{testDatabaseFile->fileName(), {}, {}}};
     createSchemaAtVersion(db, schema2);
 
     // since we don't enforce foreign key contraints in the db, we can stick in IDs to other tables
@@ -401,7 +442,7 @@ void TestDbSchema::test2to3()
 
 void TestDbSchema::test3to4()
 {
-    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{"test3to4.db", {}, {}}};
+    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{testDatabaseFile->fileName(), {}, {}}};
     createSchemaAtVersion(db, schema3);
     QVERIFY(DbUpgrader::dbSchema3to4(*db));
     verifyDb(db, schema4);
@@ -409,7 +450,7 @@ void TestDbSchema::test3to4()
 
 void TestDbSchema::test4to5()
 {
-    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{"test4to5.db", {}, {}}};
+    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{testDatabaseFile->fileName(), {}, {}}};
     createSchemaAtVersion(db, schema4);
     QVERIFY(DbUpgrader::dbSchema4to5(*db));
     verifyDb(db, schema5);
@@ -417,7 +458,7 @@ void TestDbSchema::test4to5()
 
 void TestDbSchema::test5to6()
 {
-    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{"test5to6.db", {}, {}}};
+    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{testDatabaseFile->fileName(), {}, {}}};
     createSchemaAtVersion(db, schema5);
     QVERIFY(DbUpgrader::dbSchema5to6(*db));
     verifyDb(db, schema6);
@@ -425,13 +466,42 @@ void TestDbSchema::test5to6()
 
 void TestDbSchema::test6to7()
 {
-    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{"test6to7.db", {}, {}}};
+    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{testDatabaseFile->fileName(), {}, {}}};
     // foreign_keys are enabled by History constructor and required for this upgrade to work on older sqlite versions
     db->execNow(
         "PRAGMA foreign_keys = ON;");
     createSchemaAtVersion(db, schema6);
     QVERIFY(DbUpgrader::dbSchema6to7(*db));
     verifyDb(db, schema7);
+}
+
+void TestDbSchema::test9to10()
+{
+    auto db = std::shared_ptr<RawDatabase>{new RawDatabase{testDatabaseFile->fileName(), {}, {}}};
+    createSchemaAtVersion(db, schema9);
+
+    QVERIFY(insertFileId(*db, 1, true));
+    QVERIFY(insertFileId(*db, 2, true));
+    QVERIFY(insertFileId(*db, 3, false));
+    QVERIFY(insertFileId(*db, 4, true));
+    QVERIFY(insertFileId(*db, 5, false));
+    QVERIFY(DbUpgrader::dbSchema9to10(*db));
+    int numHealed = 0;
+    int numUnchanged = 0;
+    QVERIFY(db->execNow(RawDatabase::Query("SELECT file_restart_id from file_transfers;",
+        [&](const QVector<QVariant>& row) {
+        auto resumeId = row[0].toByteArray();
+        if (resumeId == QByteArray(32, 0)) {
+            ++numHealed;
+        } else if (resumeId == QByteArray(32, 1)) {
+            ++numUnchanged;
+        } else {
+            QFAIL("Invalid file_restart_id");
+        }
+        })));
+    QVERIFY(numHealed == 2);
+    QVERIFY(numUnchanged == 3);
+    verifyDb(db, schema10);
 }
 
 QTEST_GUILESS_MAIN(TestDbSchema)

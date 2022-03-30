@@ -20,7 +20,6 @@
 #include "contentlayout.h"
 #include "style.h"
 #include "src/persistence/settings.h"
-#include "src/widget/gui.h"
 #include <QFrame>
 #include <QStyleFactory>
 
@@ -123,7 +122,7 @@ void ContentLayout::init()
         mainContent->setStyle(QStyleFactory::create(settings.getStyle()));
     }
 
-    connect(&GUI::getInstance(), &GUI::themeReload, this, &ContentLayout::reloadTheme);
+    connect(&style, &Style::themeReload, this, &ContentLayout::reloadTheme);
 
     reloadTheme();
 

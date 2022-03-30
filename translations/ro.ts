@@ -1722,6 +1722,19 @@ Vă rugăm să vă asigurați că introduceți aceeași parolă de două ori.</t
     </message>
 </context>
 <context>
+    <name>MessageBoxManager</name>
+    <message>
+        <source>Executable file</source>
+        <comment>popup title</comment>
+        <translation type="unfinished">Fișier executabil</translation>
+    </message>
+    <message>
+        <source>You have asked qTox to open an executable file. Executable files can potentially damage your computer. Are you sure want to open this file?</source>
+        <comment>popup text</comment>
+        <translation type="unfinished">Sunteți întrebat de qTox pentru deschiderea unui fișier executabil. Fișierele executabile pot deteriora computerul. Sigur doriți să deschideți acest fișier?</translation>
+    </message>
+</context>
+<context>
     <name>NetCamView</name>
     <message>
         <source>Tox video</source>
@@ -2663,6 +2676,10 @@ Acest ID include codul NoSpam (în albastru) și suma de control (în gri).</tra
         <source>Unable to upgrade settings from version %1 to version %2. Cannot start qTox.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Failed to load global settings</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ToxURIDialog</name>
@@ -2916,16 +2933,6 @@ Acest ID include codul NoSpam (în albastru) și suma de control (în gri).</tra
     <message>
         <source>Contacts</source>
         <translation>Contacte</translation>
-    </message>
-    <message>
-        <source>Executable file</source>
-        <comment>popup title</comment>
-        <translation>Fișier executabil</translation>
-    </message>
-    <message>
-        <source>You have asked qTox to open an executable file. Executable files can potentially damage your computer. Are you sure want to open this file?</source>
-        <comment>popup text</comment>
-        <translation>Sunteți întrebat de qTox pentru deschiderea unui fișier executabil. Fișierele executabile pot deteriora computerul. Sigur doriți să deschideți acest fișier?</translation>
     </message>
     <message>
         <source>Status</source>

@@ -28,8 +28,8 @@
 #include "src/persistence/globalsettingsupgrader.h"
 #include "src/persistence/personalsettingsupgrader.h"
 #include "src/persistence/smileypack.h"
-#include "src/widget/gui.h"
 #include "src/widget/style.h"
+#include "src/widget/tool/imessageboxmanager.h"
 #ifdef QTOX_PLATFORM_EXT
 #include "src/platform/autorun.h"
 #endif
@@ -66,10 +66,11 @@ QThread* Settings::settingsThread{nullptr};
 static constexpr int GLOBAL_SETTINGS_VERSION = 1;
 static constexpr int PERSONAL_SETTINGS_VERSION = 1;
 
-Settings::Settings()
+Settings::Settings(IMessageBoxManager& messageBoxManager_)
     : loaded(false)
     , useCustomDhtList{false}
     , currentProfileId(0)
+    , messageBoxManager{messageBoxManager_}
 {
     settingsThread = new QThread();
     settingsThread->setObjectName("qTox Settings");
@@ -120,8 +121,10 @@ void Settings::loadGlobal()
 
     auto upgradeSuccess = GlobalSettingsUpgrader::doUpgrade(*this, globalSettingsVersion, GLOBAL_SETTINGS_VERSION);
     if (!upgradeSuccess) {
-        // Would be nice to show a GUI warning, but GUI isn't initialized yet.
-        // Trying to run without even default settings isn't sane.
+        messageBoxManager.showError(tr("Failed to load global settings"),
+            tr("Unable to upgrade settings from version %1 to version %2. Cannot start qTox.")
+            .arg(globalSettingsVersion)
+            .arg(GLOBAL_SETTINGS_VERSION));
         std::terminate();
         return;
     }
@@ -491,7 +494,7 @@ void Settings::loadPersonal(QString profileName, const ToxEncrypt* passKey, bool
 
     auto upgradeSuccess = PersonalSettingsUpgrader::doUpgrade(ps, personalSettingsVersion, PERSONAL_SETTINGS_VERSION);
     if (!upgradeSuccess) {
-        GUI::showError(tr("Failed to load personal settings"),
+        messageBoxManager.showError(tr("Failed to load personal settings"),
             tr("Unable to upgrade settings from version %1 to version %2. Cannot start qTox.")
             .arg(personalSettingsVersion)
             .arg(PERSONAL_SETTINGS_VERSION));

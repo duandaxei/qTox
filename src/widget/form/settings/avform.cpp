@@ -45,8 +45,9 @@
 #endif
 
 AVForm::AVForm(IAudioControl& audio_, CoreAV* coreAV_, CameraSource& camera_,
-               IAudioSettings* audioSettings_, IVideoSettings* videoSettings_)
-    : GenericForm(QPixmap(":/img/settings/av.png"))
+               IAudioSettings* audioSettings_, IVideoSettings* videoSettings_,
+               Style& style)
+    : GenericForm(QPixmap(":/img/settings/av.png"), style)
     , audio(audio_)
     , coreAV{coreAV_}
     , audioSettings{audioSettings_}
@@ -170,9 +171,9 @@ void AVForm::rescanDevices()
     getVideoDevices();
 }
 
-void AVForm::setVolume(float value)
+void AVForm::setVolume(qreal value)
 {
-    volumeDisplay->setValue(getStepsFromValue(static_cast<qreal>(value), audio.minOutputVolume(), audio.maxOutputVolume()));
+    volumeDisplay->setValue(getStepsFromValue(value, audio.minOutputVolume(), audio.maxOutputVolume()));
 }
 
 void AVForm::on_videoModescomboBox_currentIndexChanged(int index)

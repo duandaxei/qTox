@@ -31,7 +31,6 @@
 #include "src/persistence/settings.h"
 #include "src/widget/form/setpassworddialog.h"
 #include "src/widget/form/settingswidget.h"
-#include "src/widget/gui.h"
 #include "src/widget/tool/recursivesignalblocker.h"
 #include "src/widget/translator.h"
 #include "src/widget/widget.h"
@@ -39,8 +38,8 @@
 #include <chrono>
 #include <random>
 
-PrivacyForm::PrivacyForm(Core* core_, Settings& settings_)
-    : GenericForm(QPixmap(":/img/settings/privacy.png"))
+PrivacyForm::PrivacyForm(Core* core_, Settings& settings_, Style& style)
+    : GenericForm(QPixmap(":/img/settings/privacy.png"), style)
     , bodyUI(new Ui::PrivacySettings)
     , core{core_}
     , settings{settings_}
