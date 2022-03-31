@@ -79,7 +79,7 @@
 #include "src/widget/style.h"
 #include "src/widget/translator.h"
 #include "src/widget/tool/imessageboxmanager.h"
-#include "tool/removefrienddialog.h"
+#include "tool/removechatdialog.h"
 #include "src/persistence/smileypack.h"
 
 bool toxActivateEventHandler(const QByteArray& data, void* userData)
@@ -160,7 +160,8 @@ Widget::Widget(Profile &profile_, IAudioControl& audio_, CameraSource& cameraSou
     , cameraSource{cameraSource_}
     , style{style_}
     , messageBoxManager(messageBoxManager_)
-    , contentDialogManager(new ContentDialogManager())
+    , friendList(new FriendList())
+    , contentDialogManager(new ContentDialogManager(*friendList))
 {
     installEventFilter(this);
     QString locale = settings.getTranslation();
@@ -267,7 +268,7 @@ void Widget::init()
     sharedMessageProcessorParams.reset(new MessageProcessor::SharedParams(core->getMaxMessageSize(), coreExt->getMaxExtendedMessageSize()));
 
     chatListWidget = new FriendListWidget(*core, this, settings, style,
-        messageBoxManager, settings.getGroupchatPosition());
+        messageBoxManager, *friendList, settings.getGroupchatPosition());
     connect(chatListWidget, &FriendListWidget::searchCircle, this, &Widget::searchCircle);
     connect(chatListWidget, &FriendListWidget::connectCircleWidget, this,
             &Widget::connectCircleWidget);
@@ -295,7 +296,7 @@ void Widget::init()
     style.setThemeColor(settings, settings.getThemeColor());
 
     CoreFile* coreFile = core->getCoreFile();
-    filesForm = new FilesForm(*coreFile, settings, style, messageBoxManager);
+    filesForm = new FilesForm(*coreFile, settings, style, messageBoxManager, *friendList);
     addFriendForm = new AddFriendForm(core->getSelfId(), settings, style,
         messageBoxManager, *core);
     groupInviteForm = new GroupInviteForm(settings, *core);
@@ -623,7 +624,7 @@ Widget::~Widget()
         removeGroup(g, true);
     }
 
-    for (Friend* f : FriendList::getAllFriends()) {
+    for (Friend* f : friendList->getAllFriends()) {
         removeFriend(f, true);
     }
 
@@ -640,7 +641,7 @@ Widget::~Widget()
     delete contentLayout;
     delete settingsWidget;
 
-    FriendList::clear();
+    friendList->clear();
     GroupList::clear();
     delete trayMenu;
     delete ui;
@@ -1060,7 +1061,7 @@ void Widget::cleanupNotificationSound()
 
 void Widget::incomingNotification(uint32_t friendNum)
 {
-    const auto& friendId = FriendList::id2Key(friendNum);
+    const auto& friendId = friendList->id2Key(friendNum);
     newFriendMessageAlert(friendId, {}, false);
 
     // loop until call answered or rejected
@@ -1091,8 +1092,8 @@ void Widget::onStopNotification()
  */
 void Widget::dispatchFile(ToxFile file)
 {
-    const auto& friendId = FriendList::id2Key(file.friendId);
-    Friend* f = FriendList::findFriend(friendId);
+    const auto& friendId = friendList->id2Key(file.friendId);
+    Friend* f = friendList->findFriend(friendId);
     if (!f) {
         return;
     }
@@ -1132,7 +1133,7 @@ void Widget::dispatchFileWithBool(ToxFile file, bool pausedOrBroken)
 
 void Widget::dispatchFileSendFailed(uint32_t friendId, const QString& fileName)
 {
-    const auto& friendPk = FriendList::id2Key(friendId);
+    const auto& friendPk = friendList->id2Key(friendId);
 
     auto chatForm = chatForms.find(friendPk);
     if (chatForm == chatForms.end()) {
@@ -1154,7 +1155,7 @@ void Widget::addFriend(uint32_t friendId, const ToxPk& friendPk)
     assert(core != nullptr);
     settings.updateFriendAddress(friendPk.toString());
 
-    Friend* newfriend = FriendList::addFriend(friendId, friendPk, settings);
+    Friend* newfriend = friendList->addFriend(friendId, friendPk, settings);
     auto rawChatroom = new FriendChatroom(newfriend, contentDialogManager.get(), *core, settings);
     std::shared_ptr<FriendChatroom> chatroom(rawChatroom);
     const auto compact = settings.getCompactLayout();
@@ -1170,10 +1171,10 @@ void Widget::addFriend(uint32_t friendId, const ToxPk& friendPk)
     // ChatHistory hooks them up in a very specific order
     auto chatHistory =
         std::make_shared<ChatHistory>(*newfriend, history, *core, settings,
-                                      *friendMessageDispatcher);
+                                      *friendMessageDispatcher, *friendList);
     auto friendForm = new ChatForm(profile, newfriend, *chatHistory,
         *friendMessageDispatcher, *documentCache, *smileyPack, cameraSource,
-        settings, style, messageBoxManager, *contentDialogManager);
+        settings, style, messageBoxManager, *contentDialogManager, *friendList);
     connect(friendForm, &ChatForm::updateFriendActivity, this, &Widget::updateFriendActivity);
 
     friendMessageDispatchers[friendPk] = friendMessageDispatcher;
@@ -1243,8 +1244,8 @@ void Widget::addFriendFailed(const ToxPk& userId, const QString& errorInfo)
 
 void Widget::onCoreFriendStatusChanged(int friendId, Status::Status status)
 {
-    const auto& friendPk = FriendList::id2Key(friendId);
-    Friend* f = FriendList::findFriend(friendPk);
+    const auto& friendPk = friendList->id2Key(friendId);
+    Friend* f = friendList->findFriend(friendPk);
     if (!f) {
         return;
     }
@@ -1288,8 +1289,8 @@ void Widget::onFriendStatusChanged(const ToxPk& friendPk, Status::Status status)
 
 void Widget::onFriendStatusMessageChanged(int friendId, const QString& message)
 {
-    const auto& friendPk = FriendList::id2Key(friendId);
-    Friend* f = FriendList::findFriend(friendPk);
+    const auto& friendPk = friendList->id2Key(friendId);
+    Friend* f = friendList->findFriend(friendPk);
     if (!f) {
         return;
     }
@@ -1322,8 +1323,8 @@ void Widget::onFriendDisplayedNameChanged(const QString& displayed)
 
 void Widget::onFriendUsernameChanged(int friendId, const QString& username)
 {
-    const auto& friendPk = FriendList::id2Key(friendId);
-    Friend* f = FriendList::findFriend(friendPk);
+    const auto& friendPk = friendList->id2Key(friendId);
+    Friend* f = friendList->findFriend(friendPk);
     if (!f) {
         return;
     }
@@ -1408,8 +1409,8 @@ void Widget::openDialog(GenericChatroomWidget* widget, bool newWindow)
 
 void Widget::onFriendMessageReceived(uint32_t friendnumber, const QString& message, bool isAction)
 {
-    const auto& friendId = FriendList::id2Key(friendnumber);
-    Friend* f = FriendList::findFriend(friendId);
+    const auto& friendId = friendList->id2Key(friendnumber);
+    Friend* f = friendList->findFriend(friendId);
     if (!f) {
         return;
     }
@@ -1419,8 +1420,8 @@ void Widget::onFriendMessageReceived(uint32_t friendnumber, const QString& messa
 
 void Widget::onReceiptReceived(int friendId, ReceiptNum receipt)
 {
-    const auto& friendKey = FriendList::id2Key(friendId);
-    Friend* f = FriendList::findFriend(friendKey);
+    const auto& friendKey = friendList->id2Key(friendId);
+    Friend* f = friendList->findFriend(friendKey);
     if (!f) {
         return;
     }
@@ -1430,8 +1431,8 @@ void Widget::onReceiptReceived(int friendId, ReceiptNum receipt)
 
 void Widget::onExtendedMessageSupport(uint32_t friendNumber, bool supported)
 {
-    const auto& friendKey = FriendList::id2Key(friendNumber);
-    Friend* f = FriendList::findFriend(friendKey);
+    const auto& friendKey = friendList->id2Key(friendNumber);
+    Friend* f = friendList->findFriend(friendKey);
     if (!f) {
         return;
     }
@@ -1441,13 +1442,13 @@ void Widget::onExtendedMessageSupport(uint32_t friendNumber, bool supported)
 
 void Widget::onFriendExtMessageReceived(uint32_t friendNumber, const QString& message)
 {
-    const auto& friendKey = FriendList::id2Key(friendNumber);
+    const auto& friendKey = friendList->id2Key(friendNumber);
     friendMessageDispatchers[friendKey]->onExtMessageReceived(message);
 }
 
 void Widget::onExtReceiptReceived(uint32_t friendNumber, uint64_t receiptId)
 {
-    const auto& friendKey = FriendList::id2Key(friendNumber);
+    const auto& friendKey = friendList->id2Key(friendNumber);
     friendMessageDispatchers[friendKey]->onExtReceiptReceived(receiptId);
 }
 
@@ -1557,7 +1558,7 @@ bool Widget::newFriendMessageAlert(const ToxPk& friendId, const QString& text, b
     bool hasActive;
     QWidget* currentWindow;
     ContentDialog* contentDialog = contentDialogManager->getFriendDialog(friendId);
-    Friend* f = FriendList::findFriend(friendId);
+    Friend* f = friendList->findFriend(friendId);
 
     if (contentDialog != nullptr) {
         currentWindow = contentDialog->window();
@@ -1724,7 +1725,7 @@ void Widget::onFriendRequestReceived(const ToxPk& friendPk, const QString& messa
 
 void Widget::onFileReceiveRequested(const ToxFile& file)
 {
-    const ToxPk& friendPk = FriendList::id2Key(file.friendId);
+    const ToxPk& friendPk = friendList->id2Key(file.friendId);
     newFriendMessageAlert(friendPk, {}, true, file.fileName, file.progress.getFileSize());
 }
 
@@ -1741,17 +1742,9 @@ void Widget::updateFriendActivity(const Friend& frnd)
 
 void Widget::removeFriend(Friend* f, bool fake)
 {
+    assert(f);
     if (!fake) {
-        RemoveFriendDialog ask(this, f);
-        ask.exec();
-
-        if (!ask.accepted()) {
-            return;
-        }
-
-        if (ask.removeHistory()) {
-            profile.getHistory()->removeFriendHistory(f->getPublicKey());
-        }
+        removeChatHistory(*f);
     }
 
     const ToxPk friendPk = f->getPublicKey();
@@ -1771,7 +1764,7 @@ void Widget::removeFriend(Friend* f, bool fake)
         lastDialog->removeFriend(friendPk);
     }
 
-    FriendList::removeFriend(friendPk, settings, fake);
+    friendList->removeFriend(friendPk, settings, fake);
     if (!fake) {
         core->removeFriend(f->getId());
         // aliases aren't supported for non-friend peers in groups, revert to basic username
@@ -1796,7 +1789,7 @@ void Widget::removeFriend(Friend* f, bool fake)
 
 void Widget::removeFriend(const ToxPk& friendId)
 {
-    removeFriend(FriendList::findFriend(friendId), false);
+    removeFriend(friendList->findFriend(friendId), false);
 }
 
 void Widget::onDialogShown(GenericChatroomWidget* widget)
@@ -1837,7 +1830,8 @@ void Widget::onUpdateAvailable()
 
 ContentDialog* Widget::createContentDialog() const
 {
-    ContentDialog* contentDialog = new ContentDialog(*core, settings, style, messageBoxManager);
+    ContentDialog* contentDialog = new ContentDialog(*core, settings, style,
+        messageBoxManager, *friendList);
 
     registerContentDialog(*contentDialog);
     return contentDialog;
@@ -1948,7 +1942,7 @@ ContentLayout* Widget::createContentDialog(DialogType type) const
 
 void Widget::copyFriendIdToClipboard(const ToxPk& friendId)
 {
-    Friend* f = FriendList::findFriend(friendId);
+    Friend* f = friendList->findFriend(friendId);
     if (f != nullptr) {
         QClipboard* clipboard = QApplication::clipboard();
         clipboard->setText(friendId.toString(), QClipboard::Clipboard);
@@ -1958,8 +1952,8 @@ void Widget::copyFriendIdToClipboard(const ToxPk& friendId)
 void Widget::onGroupInviteReceived(const GroupInvite& inviteInfo)
 {
     const uint32_t friendId = inviteInfo.getFriendId();
-    const ToxPk& friendPk = FriendList::id2Key(friendId);
-    const Friend* f = FriendList::findFriend(friendPk);
+    const ToxPk& friendPk = friendList->id2Key(friendId);
+    const Friend* f = friendList->findFriend(friendPk);
     updateFriendActivity(*f);
 
     const uint8_t confType = inviteInfo.getType();
@@ -2019,7 +2013,7 @@ void Widget::onGroupPeerNameChanged(uint32_t groupnumber, const ToxPk& peerPk, c
     Group* g = GroupList::findGroup(groupId);
     assert(g);
 
-    const QString setName = FriendList::decideNickname(peerPk, newName);
+    const QString setName = friendList->decideNickname(peerPk, newName);
     g->updateUsername(peerPk, newName);
 }
 
@@ -2056,6 +2050,11 @@ void Widget::onGroupPeerAudioPlaying(int groupnumber, ToxPk peerPk)
 
 void Widget::removeGroup(Group* g, bool fake)
 {
+    assert(g);
+    if (!fake) {
+        removeChatHistory(*g);
+    }
+
     const auto& groupId = g->getPersistentId();
     const auto groupnumber = g->getId();
     auto groupWidgetIt = groupWidgets.find(groupId);
@@ -2115,7 +2114,8 @@ Group* Widget::createGroup(uint32_t groupnumber, const GroupId& groupId)
     const auto groupName = tr("Groupchat #%1").arg(groupnumber);
     const bool enabled = core->getGroupAvEnabled(groupnumber);
     Group* newgroup =
-        GroupList::addGroup(*core, groupnumber, groupId, groupName, enabled, core->getUsername());
+        GroupList::addGroup(*core, groupnumber, groupId, groupName, enabled, core->getUsername(),
+            *friendList);
     assert(newgroup);
 
     if (enabled) {
@@ -2125,7 +2125,8 @@ Group* Widget::createGroup(uint32_t groupnumber, const GroupId& groupId)
             av->invalidateGroupCallPeerSource(*newgroup, user);
         });
     }
-    auto rawChatroom = new GroupChatroom(newgroup, contentDialogManager.get(), *core);
+    auto rawChatroom = new GroupChatroom(newgroup, contentDialogManager.get(), *core,
+        *friendList);
     std::shared_ptr<GroupChatroom> chatroom(rawChatroom);
 
     const auto compact = settings.getCompactLayout();
@@ -2134,16 +2135,13 @@ Group* Widget::createGroup(uint32_t groupnumber, const GroupId& groupId)
     auto messageDispatcher =
         std::make_shared<GroupMessageDispatcher>(*newgroup, std::move(messageProcessor), *core,
                                                  *core, settings);
-    auto groupChatLog = std::make_shared<SessionChatLog>(*core);
 
-    connect(messageDispatcher.get(), &IMessageDispatcher::messageReceived, groupChatLog.get(),
-            &SessionChatLog::onMessageReceived);
-    connect(messageDispatcher.get(), &IMessageDispatcher::messageSent, groupChatLog.get(),
-            &SessionChatLog::onMessageSent);
-    connect(messageDispatcher.get(), &IMessageDispatcher::messageComplete, groupChatLog.get(),
-            &SessionChatLog::onMessageComplete);
-    connect(messageDispatcher.get(), &IMessageDispatcher::messageBroken, groupChatLog.get(),
-            &SessionChatLog::onMessageBroken);
+    auto history = profile.getHistory();
+    // Note: We do not have to connect the message dispatcher signals since
+    // ChatHistory hooks them up in a very specific order
+    auto chatHistory =
+        std::make_shared<ChatHistory>(*newgroup, history, *core, settings,
+                                      *messageDispatcher, *friendList);
 
     auto notifyReceivedCallback = [this, groupId](const ToxPk& author, const Message& message) {
         auto isTargeted = std::any_of(message.metadata.begin(), message.metadata.end(),
@@ -2158,12 +2156,12 @@ Group* Widget::createGroup(uint32_t groupnumber, const GroupId& groupId)
         connect(messageDispatcher.get(), &IMessageDispatcher::messageReceived, notifyReceivedCallback);
     groupAlertConnections.insert(groupId, notifyReceivedConnection);
 
-    auto form = new GroupChatForm(*core, newgroup, *groupChatLog, *messageDispatcher,
-        settings, *documentCache, *smileyPack, style, messageBoxManager);
+    auto form = new GroupChatForm(*core, newgroup, *chatHistory, *messageDispatcher,
+        settings, *documentCache, *smileyPack, style, messageBoxManager, *friendList);
     connect(&settings, &Settings::nameColorsChanged, form, &GenericChatForm::setColorizedNames);
     form->setColorizedNames(settings.getEnableGroupChatsColor());
     groupMessageDispatchers[groupId] = messageDispatcher;
-    groupChatLogs[groupId] = groupChatLog;
+    groupChatLogs[groupId] = chatHistory;
     groupWidgets[groupId] = widget;
     groupChatrooms[groupId] = chatroom;
     groupChatForms[groupId] = QSharedPointer<GroupChatForm>(form);
@@ -2367,8 +2365,8 @@ void Widget::onGroupSendFailed(uint32_t groupnumber)
 
 void Widget::onFriendTypingChanged(uint32_t friendnumber, bool isTyping)
 {
-    const auto& friendId = FriendList::id2Key(friendnumber);
-    Friend* f = FriendList::findFriend(friendId);
+    const auto& friendId = friendList->id2Key(friendnumber);
+    Friend* f = friendList->findFriend(friendId);
     if (!f) {
         return;
     }
@@ -2443,7 +2441,7 @@ bool Widget::filterOnline(FilterCriteria index)
 
 void Widget::clearAllReceipts()
 {
-    QList<Friend*> frnds = FriendList::getAllFriends();
+    QList<Friend*> frnds = friendList->getAllFriends();
     for (Friend* f : frnds) {
         friendMessageDispatchers[f->getPublicKey()]->clearOutgoingMessages();
     }
@@ -2735,5 +2733,19 @@ void Widget::formatWindowTitle(const QString& content)
         setWindowTitle("qTox");
     } else {
         setWindowTitle(content + " - qTox");
+    }
+}
+
+void Widget::removeChatHistory(Chat& chat)
+{
+    RemoveChatDialog ask(this, chat);
+    ask.exec();
+
+    if (!ask.accepted()) {
+        return;
+    }
+
+    if (ask.removeHistory()) {
+        profile.getHistory()->removeChatHistory(chat.getPersistentId());
     }
 }

@@ -31,12 +31,15 @@
 #include <QObject>
 #include <QStringList>
 
+class FriendList;
+
 class Group : public Chat
 {
     Q_OBJECT
 public:
     Group(int groupId_, const GroupId persistentGroupId, const QString& name, bool isAvGroupchat,
-          const QString& selfName_, ICoreGroupQuery& groupQuery_, ICoreIdHandler& idHandler_);
+          const QString& selfName_, ICoreGroupQuery& groupQuery_, ICoreIdHandler& idHandler_,
+          FriendList& friendList);
     bool isAvGroupchat() const;
     uint32_t getId() const override;
     const GroupId& getPersistentId() const override;
@@ -56,6 +59,7 @@ public:
     void setTitle(const QString& author, const QString& newTitle);
     QString getName() const;
     QString getDisplayedName() const override;
+    QString getDisplayedName(const ToxPk& contact) const override;
     QString resolveToxPk(const ToxPk& id) const;
     void setSelfName(const QString& name);
     QString getSelfName() const;
@@ -79,4 +83,5 @@ private:
     int toxGroupNum;
     const GroupId groupId;
     bool avGroupchat;
+    FriendList& friendList;
 };
