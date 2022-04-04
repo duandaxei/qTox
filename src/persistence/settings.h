@@ -160,7 +160,7 @@ public:
     void savePersonal();
 
     void loadGlobal();
-    void loadPersonal(QString profileName, const ToxEncrypt* passKey, bool newProfile);
+    void loadPersonal(const Profile& profile, bool newProfile);
 
     void resetToDefault();
 
@@ -573,15 +573,14 @@ public:
 
 private:
     struct friendProp;
-    void savePersonal(QString profileName, const ToxEncrypt* passkey);
     friendProp& getOrInsertFriendPropRef(const ToxPk& id);
     static ICoreSettings::ProxyType fixInvalidProxyType(ICoreSettings::ProxyType proxyType);
 
     template <typename T>
     bool setVal(T& savedVal, T newVal);
 
-public slots:
-    void savePersonal(Profile* profile);
+private slots:
+    void savePersonal(QString profileName, const ToxEncrypt* passkey);
 
 private:
     bool loaded;
@@ -718,4 +717,5 @@ private:
     int globalSettingsVersion = 0;
     int personalSettingsVersion = 0;
     IMessageBoxManager& messageBoxManager;
+    const Profile* loadedProfile = nullptr;
 };
