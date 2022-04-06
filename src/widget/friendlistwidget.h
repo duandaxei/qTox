@@ -42,6 +42,8 @@ class Settings;
 class Style;
 class IMessageBoxManager;
 class FriendList;
+class GroupList;
+class Profile;
 
 class FriendListWidget : public QWidget
 {
@@ -49,8 +51,8 @@ class FriendListWidget : public QWidget
 public:
     using SortingMode = Settings::FriendListSortingMode;
     FriendListWidget(const Core& core, Widget* parent, Settings& settings, Style& style,
-        IMessageBoxManager& messageBoxManager, FriendList& friendList,
-        bool groupsOnTop = true);
+        IMessageBoxManager& messageBoxManager, FriendList& friendList, GroupList& groupList,
+        Profile& profile, bool groupsOnTop = true);
     ~FriendListWidget();
     void setMode(SortingMode mode);
     SortingMode getMode() const;
@@ -107,4 +109,6 @@ private:
     Style& style;
     IMessageBoxManager& messageBoxManager;
     FriendList& friendList;
+    GroupList& groupList;
+    Profile& profile;
 };

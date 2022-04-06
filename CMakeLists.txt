@@ -102,6 +102,10 @@ if (UNIX AND NOT APPLE)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-z,relro")
 endif()
 
+add_definitions(-DQT_NO_CAST_FROM_BYTEARRAY)
+add_definitions(-DQT_NO_CAST_TO_ASCII)
+add_definitions(-DQT_RESTRICTED_CAST_FROM_ASCII)
+
 include(CheckAtomic)
 
 # Use ccache when available to speed up builds.

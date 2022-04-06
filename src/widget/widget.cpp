@@ -161,6 +161,7 @@ Widget::Widget(Profile &profile_, IAudioControl& audio_, CameraSource& cameraSou
     , style{style_}
     , messageBoxManager(new MessageBoxManager(this))
     , friendList(new FriendList())
+    , groupList(new GroupList())
     , contentDialogManager(new ContentDialogManager(*friendList))
 {
     installEventFilter(this);
@@ -268,7 +269,7 @@ void Widget::init()
     sharedMessageProcessorParams.reset(new MessageProcessor::SharedParams(core->getMaxMessageSize(), coreExt->getMaxExtendedMessageSize()));
 
     chatListWidget = new FriendListWidget(*core, this, settings, style,
-        *messageBoxManager, *friendList, settings.getGroupchatPosition());
+        *messageBoxManager, *friendList, *groupList, profile, settings.getGroupchatPosition());
     connect(chatListWidget, &FriendListWidget::searchCircle, this, &Widget::searchCircle);
     connect(chatListWidget, &FriendListWidget::connectCircleWidget, this,
             &Widget::connectCircleWidget);
@@ -306,7 +307,7 @@ void Widget::init()
     connect(updateCheck.get(), &UpdateCheck::updateAvailable, this, &Widget::onUpdateAvailable);
 #endif
     settingsWidget = new SettingsWidget(updateCheck.get(), audio, core, *smileyPack,
-        cameraSource, settings, style, *messageBoxManager, this);
+        cameraSource, settings, style, *messageBoxManager, profile, this);
 #if UPDATE_CHECK_ENABLED
     updateCheck->checkForUpdate();
 #endif
@@ -555,7 +556,7 @@ void Widget::updateIcons()
 
     const QString assetSuffix = Status::getAssetSuffix(static_cast<Status::Status>(
                                     ui->statusButton->property("status").toInt()))
-                                + (eventIcon ? "_event" : "");
+                                + (eventIcon ? QStringLiteral("_event") : QString());
 
     // Some builds of Qt appear to have a bug in icon loading:
     // QIcon::hasThemeIcon is sometimes unaware that the icon returned
@@ -587,7 +588,7 @@ void Widget::updateIcons()
     if (!hasThemeIconBug && QIcon::hasThemeIcon("qtox-" + assetSuffix)) {
         ico = QIcon::fromTheme("qtox-" + assetSuffix);
     } else {
-        QString color = settings.getLightTrayIcon() ? "light" : "dark";
+        QString color = settings.getLightTrayIcon() ? QStringLiteral("light") : QStringLiteral("dark");
         QString path = ":/img/taskbar/" + color + "/taskbar_" + assetSuffix + ".svg";
         QSvgRenderer renderer(path);
 
@@ -620,7 +621,7 @@ Widget::~Widget()
         icon->hide();
     }
 
-    for (Group* g : GroupList::getAllGroups()) {
+    for (Group* g : groupList->getAllGroups()) {
         removeGroup(g, true);
     }
 
@@ -642,7 +643,7 @@ Widget::~Widget()
     delete settingsWidget;
 
     friendList->clear();
-    GroupList::clear();
+    groupList->clear();
     delete trayMenu;
     delete ui;
     instance = nullptr;
@@ -1156,10 +1157,10 @@ void Widget::addFriend(uint32_t friendId, const ToxPk& friendPk)
     settings.updateFriendAddress(friendPk.toString());
 
     Friend* newfriend = friendList->addFriend(friendId, friendPk, settings);
-    auto rawChatroom = new FriendChatroom(newfriend, contentDialogManager.get(), *core, settings);
+    auto rawChatroom = new FriendChatroom(newfriend, contentDialogManager.get(), *core, settings, *groupList);
     std::shared_ptr<FriendChatroom> chatroom(rawChatroom);
     const auto compact = settings.getCompactLayout();
-    auto widget = new FriendWidget(chatroom, compact, settings, style, *messageBoxManager);
+    auto widget = new FriendWidget(chatroom, compact, settings, style, *messageBoxManager, profile);
     connectFriendWidget(*widget);
     auto history = profile.getHistory();
 
@@ -1171,10 +1172,12 @@ void Widget::addFriend(uint32_t friendId, const ToxPk& friendPk)
     // ChatHistory hooks them up in a very specific order
     auto chatHistory =
         std::make_shared<ChatHistory>(*newfriend, history, *core, settings,
-                                      *friendMessageDispatcher, *friendList);
+                                      *friendMessageDispatcher, *friendList,
+                                      *groupList);
     auto friendForm = new ChatForm(profile, newfriend, *chatHistory,
         *friendMessageDispatcher, *documentCache, *smileyPack, cameraSource,
-        settings, style, *messageBoxManager, *contentDialogManager, *friendList);
+        settings, style, *messageBoxManager, *contentDialogManager, *friendList,
+        *groupList);
     connect(friendForm, &ChatForm::updateFriendActivity, this, &Widget::updateFriendActivity);
 
     friendMessageDispatchers[friendPk] = friendMessageDispatcher;
@@ -1307,7 +1310,7 @@ void Widget::onFriendDisplayedNameChanged(const QString& displayed)
 {
     Friend* f = qobject_cast<Friend*>(sender());
     const auto& friendPk = f->getPublicKey();
-    for (Group* g : GroupList::getAllGroups()) {
+    for (Group* g : groupList->getAllGroups()) {
         if (g->getPeerList().contains(friendPk)) {
             g->updateUsername(friendPk, displayed);
         }
@@ -1619,7 +1622,7 @@ bool Widget::newGroupMessageAlert(const GroupId& groupId, const ToxPk& authorPk,
     bool hasActive;
     QWidget* currentWindow;
     ContentDialog* contentDialog = contentDialogManager->getGroupDialog(groupId);
-    Group* g = GroupList::findGroup(groupId);
+    Group* g = groupList->findGroup(groupId);
     GroupWidget* widget = groupWidgets[groupId];
 
     if (contentDialog != nullptr) {
@@ -1768,7 +1771,7 @@ void Widget::removeFriend(Friend* f, bool fake)
     if (!fake) {
         core->removeFriend(f->getId());
         // aliases aren't supported for non-friend peers in groups, revert to basic username
-        for (Group* g : GroupList::getAllGroups()) {
+        for (Group* g : groupList->getAllGroups()) {
             if (g->getPeerList().contains(friendPk)) {
                 g->updateUsername(friendPk, f->getUserName());
             }
@@ -1831,7 +1834,7 @@ void Widget::onUpdateAvailable()
 ContentDialog* Widget::createContentDialog() const
 {
     ContentDialog* contentDialog = new ContentDialog(*core, settings, style,
-        *messageBoxManager, *friendList);
+        *messageBoxManager, *friendList, *groupList, profile);
 
     registerContentDialog(*contentDialog);
     return contentDialog;
@@ -1991,8 +1994,8 @@ void Widget::onGroupInviteAccepted(const GroupInvite& inviteInfo)
 void Widget::onGroupMessageReceived(int groupnumber, int peernumber, const QString& message,
                                     bool isAction)
 {
-    const GroupId& groupId = GroupList::id2Key(groupnumber);
-    assert(GroupList::findGroup(groupId));
+    const GroupId& groupId = groupList->id2Key(groupnumber);
+    assert(groupList->findGroup(groupId));
 
     ToxPk author = core->getGroupPeerPk(groupnumber, peernumber);
 
@@ -2001,16 +2004,16 @@ void Widget::onGroupMessageReceived(int groupnumber, int peernumber, const QStri
 
 void Widget::onGroupPeerlistChanged(uint32_t groupnumber)
 {
-    const GroupId& groupId = GroupList::id2Key(groupnumber);
-    Group* g = GroupList::findGroup(groupId);
+    const GroupId& groupId = groupList->id2Key(groupnumber);
+    Group* g = groupList->findGroup(groupId);
     assert(g);
     g->regeneratePeerList();
 }
 
 void Widget::onGroupPeerNameChanged(uint32_t groupnumber, const ToxPk& peerPk, const QString& newName)
 {
-    const GroupId& groupId = GroupList::id2Key(groupnumber);
-    Group* g = GroupList::findGroup(groupId);
+    const GroupId& groupId = groupList->id2Key(groupnumber);
+    Group* g = groupList->findGroup(groupId);
     assert(g);
 
     const QString setName = friendList->decideNickname(peerPk, newName);
@@ -2019,8 +2022,8 @@ void Widget::onGroupPeerNameChanged(uint32_t groupnumber, const ToxPk& peerPk, c
 
 void Widget::onGroupTitleChanged(uint32_t groupnumber, const QString& author, const QString& title)
 {
-    const GroupId& groupId = GroupList::id2Key(groupnumber);
-    Group* g = GroupList::findGroup(groupId);
+    const GroupId& groupId = groupList->id2Key(groupnumber);
+    Group* g = groupList->findGroup(groupId);
     assert(g);
 
     GroupWidget* widget = groupWidgets[groupId];
@@ -2041,8 +2044,8 @@ void Widget::titleChangedByUser(const QString& title)
 
 void Widget::onGroupPeerAudioPlaying(int groupnumber, ToxPk peerPk)
 {
-    const GroupId& groupId = GroupList::id2Key(groupnumber);
-    assert(GroupList::findGroup(groupId));
+    const GroupId& groupId = groupList->id2Key(groupnumber);
+    assert(groupList->findGroup(groupId));
 
     auto form = groupChatForms[groupId].data();
     form->peerAudioPlaying(peerPk);
@@ -2069,7 +2072,7 @@ void Widget::removeGroup(Group* g, bool fake)
         onAddClicked();
     }
 
-    GroupList::removeGroup(groupId, fake);
+    groupList->removeGroup(groupId, fake);
     ContentDialog* contentDialog = contentDialogManager->getGroupDialog(groupId);
     if (contentDialog != nullptr) {
         contentDialog->removeGroup(groupId);
@@ -2098,14 +2101,14 @@ void Widget::removeGroup(Group* g, bool fake)
 
 void Widget::removeGroup(const GroupId& groupId)
 {
-    removeGroup(GroupList::findGroup(groupId));
+    removeGroup(groupList->findGroup(groupId));
 }
 
 Group* Widget::createGroup(uint32_t groupnumber, const GroupId& groupId)
 {
     assert(core != nullptr);
 
-    Group* g = GroupList::findGroup(groupId);
+    Group* g = groupList->findGroup(groupId);
     if (g) {
         qWarning() << "Group already exists";
         return g;
@@ -2114,7 +2117,7 @@ Group* Widget::createGroup(uint32_t groupnumber, const GroupId& groupId)
     const auto groupName = tr("Groupchat #%1").arg(groupnumber);
     const bool enabled = core->getGroupAvEnabled(groupnumber);
     Group* newgroup =
-        GroupList::addGroup(*core, groupnumber, groupId, groupName, enabled, core->getUsername(),
+        groupList->addGroup(*core, groupnumber, groupId, groupName, enabled, core->getUsername(),
             *friendList);
     assert(newgroup);
 
@@ -2141,7 +2144,7 @@ Group* Widget::createGroup(uint32_t groupnumber, const GroupId& groupId)
     // ChatHistory hooks them up in a very specific order
     auto chatHistory =
         std::make_shared<ChatHistory>(*newgroup, history, *core, settings,
-                                      *messageDispatcher, *friendList);
+                                      *messageDispatcher, *friendList, *groupList);
 
     auto notifyReceivedCallback = [this, groupId](const ToxPk& author, const Message& message) {
         auto isTargeted = std::any_of(message.metadata.begin(), message.metadata.end(),
@@ -2157,7 +2160,7 @@ Group* Widget::createGroup(uint32_t groupnumber, const GroupId& groupId)
     groupAlertConnections.insert(groupId, notifyReceivedConnection);
 
     auto form = new GroupChatForm(*core, newgroup, *chatHistory, *messageDispatcher,
-        settings, *documentCache, *smileyPack, style, *messageBoxManager, *friendList);
+        settings, *documentCache, *smileyPack, style, *messageBoxManager, *friendList, *groupList);
     connect(&settings, &Settings::nameColorsChanged, form, &GenericChatForm::setColorizedNames);
     form->setColorizedNames(settings.getEnableGroupChatsColor());
     groupMessageDispatchers[groupId] = messageDispatcher;
@@ -2355,8 +2358,8 @@ void Widget::setStatusBusy()
 
 void Widget::onGroupSendFailed(uint32_t groupnumber)
 {
-    const auto& groupId = GroupList::id2Key(groupnumber);
-    assert(GroupList::findGroup(groupId));
+    const auto& groupId = groupList->id2Key(groupnumber);
+    assert(groupList->findGroup(groupId));
 
     const auto curTime = QDateTime::currentDateTime();
     auto form = groupChatForms[groupId].data();
@@ -2481,9 +2484,9 @@ inline QIcon Widget::prepareIcon(QString path, int w, int h)
 {
 #ifdef Q_OS_LINUX
 
-    QString desktop = getenv("XDG_CURRENT_DESKTOP");
+    QString desktop = QString::fromUtf8(getenv("XDG_CURRENT_DESKTOP"));
     if (desktop.isEmpty()) {
-        desktop = getenv("DESKTOP_SESSION");
+        desktop = QString::fromUtf8(getenv("DESKTOP_SESSION"));
     }
 
     desktop = desktop.toLower();
@@ -2706,7 +2709,7 @@ void Widget::focusChatInput()
 
 void Widget::refreshPeerListsLocal(const QString& username)
 {
-    for (Group* g : GroupList::getAllGroups()) {
+    for (Group* g : groupList->getAllGroups()) {
         g->updateUsername(core->getSelfPublicKey(), username);
     }
 }

@@ -720,19 +720,19 @@ geçersiz karakterler _ olarak değiştirildi.</translation>
     <name>ChatWidget</name>
     <message>
         <source>pending</source>
-        <translation type="unfinished">bekliyor</translation>
+        <translation>bekliyor</translation>
     </message>
     <message>
         <source>%1 is typing</source>
-        <translation type="unfinished">%1 yazıyor</translation>
+        <translation>%1 yazıyor</translation>
     </message>
     <message>
         <source>Copy</source>
-        <translation type="unfinished">Kopyala</translation>
+        <translation>Kopyala</translation>
     </message>
     <message>
         <source>Select all</source>
-        <translation type="unfinished">Tümünü seç</translation>
+        <translation>Tümünü seç</translation>
     </message>
 </context>
 <context>
@@ -1154,7 +1154,7 @@ tamamen kapanmak yerine tepsiye kapanacak.</translation>
     </message>
     <message>
         <source>Add a chat message when a user joins or leaves a group</source>
-        <translation type="unfinished"></translation>
+        <translation>Bir kullanıcı gruba katıldığında veya gruptan ayrıldığında sohbet iletisi ekle</translation>
     </message>
 </context>
 <context>
@@ -1460,7 +1460,7 @@ Sohbete başlamak için arkadaşlarınızla paylaşın.</translation>
     </message>
     <message>
         <source>Load history from:</source>
-        <translation type="unfinished"></translation>
+        <translation>Geçmişi şuradan yükle:</translation>
     </message>
 </context>
 <context>
@@ -1716,12 +1716,12 @@ Lütfen aynı parolayı iki kez girdiğinizden emin olun.</translation>
     <message>
         <source>Executable file</source>
         <comment>popup title</comment>
-        <translation type="unfinished">Çalıştırılabilir dosya</translation>
+        <translation>Çalıştırılabilir dosya</translation>
     </message>
     <message>
         <source>You have asked qTox to open an executable file. Executable files can potentially damage your computer. Are you sure want to open this file?</source>
         <comment>popup text</comment>
-        <translation type="unfinished">qTox&apos;tan çalıştırılabilir bir dosyayı açmasını istediniz. Çalıştırılabilir dosyalar bilgisayarınıza zarar verebilir. Bu dosyayı açmak istediğinize emin misiniz?</translation>
+        <translation>qTox&apos;tan çalıştırılabilir bir dosyayı açmasını istediniz. Çalıştırılabilir dosyalar bilgisayarınıza zarar verebilir. Bu dosyayı açmak istediğinize emin misiniz?</translation>
     </message>
 </context>
 <context>
@@ -2382,116 +2382,116 @@ Bu kimlik NoSpam kodunu (mavi) ve sağlama toplamını (gri) içerir.</translati
     </message>
     <message>
         <source>Failed to send file &quot;%1&quot;</source>
-        <translation type="unfinished">&quot;%1&quot; dosyası gönderilemedi</translation>
+        <translation>&quot;%1&quot; dosyası gönderilemedi</translation>
     </message>
     <message>
         <source>%1 has joined the group</source>
-        <translation type="unfinished">%1 gruba katıldı</translation>
+        <translation>%1 gruba katıldı</translation>
     </message>
     <message>
         <source>%1 has left the group</source>
-        <translation type="unfinished">%1 gruptan ayrıldı</translation>
+        <translation>%1 gruptan ayrıldı</translation>
     </message>
     <message>
         <source>%1 is now known as %2</source>
-        <translation type="unfinished">%1 artık %2 olarak biliniyor</translation>
+        <translation>%1 artık %2 olarak biliniyor</translation>
     </message>
     <message>
         <source>%1 has set the title to %2</source>
-        <translation type="unfinished">%1 başlığı %2 olarak ayarladı</translation>
+        <translation>%1 başlığı %2 olarak ayarladı</translation>
     </message>
     <message>
         <source>Cleared</source>
-        <translation type="unfinished">Temizlendi</translation>
+        <translation>Temizlendi</translation>
     </message>
     <message>
         <source>Call with %1 ended unexpectedly. %2</source>
-        <translation type="unfinished">%1 ile arama beklenmedik şekilde sonlandı. %2</translation>
+        <translation>%1 ile arama beklenmedik şekilde sonlandı. %2</translation>
     </message>
     <message>
         <source>Call with %1 ended. %2</source>
-        <translation type="unfinished">%1 ile arama sonlandı. %2</translation>
+        <translation>%1 ile arama sonlandı. %2</translation>
     </message>
     <message>
         <source>%1 is now %2</source>
         <comment>e.g. &quot;Dubslow is now online&quot;</comment>
-        <translation type="unfinished">%1 artık %2</translation>
+        <translation>%1 artık %2</translation>
     </message>
     <message>
         <source>Calling %1</source>
-        <translation type="unfinished">%1 aranıyor</translation>
+        <translation>%1 aranıyor</translation>
     </message>
     <message>
         <source>%1 calling</source>
-        <translation type="unfinished">%1 arıyor</translation>
+        <translation>%1 arıyor</translation>
     </message>
     <message>
         <source>Message failed to send</source>
-        <translation type="unfinished">İleti gönderilemedi</translation>
+        <translation>İleti gönderilemedi</translation>
     </message>
     <message>
         <source>Initializing</source>
-        <translation type="unfinished"></translation>
+        <translation>Başlatılıyor</translation>
     </message>
     <message>
         <source>Transmitting</source>
-        <translation type="unfinished"></translation>
+        <translation>Gönderiliyor</translation>
     </message>
     <message>
         <source>Finished</source>
-        <translation type="unfinished"></translation>
+        <translation>Bitti</translation>
     </message>
     <message>
         <source>Broken</source>
-        <translation type="unfinished"></translation>
+        <translation>Bozuk</translation>
     </message>
     <message>
         <source>Canceled</source>
-        <translation type="unfinished"></translation>
+        <translation>İptal edildi</translation>
     </message>
     <message>
         <source>Paused</source>
-        <translation type="unfinished">Duraklatıldı</translation>
+        <translation>Duraklatıldı</translation>
     </message>
     <message>
         <source>Remote paused</source>
-        <translation type="unfinished">Uzaktan duraklatıldı</translation>
+        <translation>Uzaktan duraklatıldı</translation>
     </message>
     <message>
         <source>File Name</source>
-        <translation type="unfinished"></translation>
+        <translation>Dosya Adı</translation>
     </message>
     <message>
         <source>Contact</source>
-        <translation type="unfinished"></translation>
+        <translation>Kişi</translation>
     </message>
     <message>
         <source>Progress</source>
-        <translation type="unfinished"></translation>
+        <translation>İlerleme</translation>
     </message>
     <message>
         <source>Size</source>
-        <translation type="unfinished"></translation>
+        <translation>Boyut</translation>
     </message>
     <message>
         <source>Speed</source>
-        <translation type="unfinished"></translation>
+        <translation>Hız</translation>
     </message>
     <message>
         <source>Status</source>
-        <translation type="unfinished">Durum</translation>
+        <translation>Durum</translation>
     </message>
     <message>
         <source>Control</source>
-        <translation type="unfinished"></translation>
+        <translation>Denetim</translation>
     </message>
     <message>
         <source>You have joined the group</source>
-        <translation type="unfinished"></translation>
+        <translation>Gruba katıldınız</translation>
     </message>
     <message>
         <source>You have left the group</source>
-        <translation type="unfinished"></translation>
+        <translation>Gruptan ayrıldınız</translation>
     </message>
 </context>
 <context>
@@ -2600,11 +2600,11 @@ Bu kimlik NoSpam kodunu (mavi) ve sağlama toplamını (gri) içerir.</translati
     </message>
     <message>
         <source>Select Date Dialog</source>
-        <translation type="unfinished"></translation>
+        <translation>Tarih Seç İletişim Kutusu</translation>
     </message>
     <message>
         <source>Select a date</source>
-        <translation type="unfinished">Bir tarih seçin</translation>
+        <translation>Bir tarih seçin</translation>
     </message>
 </context>
 <context>
@@ -2658,15 +2658,15 @@ Bu kimlik NoSpam kodunu (mavi) ve sağlama toplamını (gri) içerir.</translati
     </message>
     <message>
         <source>Failed to load personal settings</source>
-        <translation type="unfinished"></translation>
+        <translation>Kişisel ayarlar yüklenemedi</translation>
     </message>
     <message>
         <source>Unable to upgrade settings from version %1 to version %2. Cannot start qTox.</source>
-        <translation type="unfinished"></translation>
+        <translation>Ayarlar %1 sürümünden %2 sürümüne yükseltilemedi. qTox başlatılamıyor.</translation>
     </message>
     <message>
         <source>Failed to load global settings</source>
-        <translation type="unfinished"></translation>
+        <translation>Genel ayarlar yüklenemedi</translation>
     </message>
 </context>
 <context>
